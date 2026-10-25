@@ -252,6 +252,20 @@
       if (g.alt && r.flags.version !== 'shield') leader = g.leader.split(' / ')[0];
       const team = W().buildTeam(def.team, { smart: true, region: regionId, ot: leader, ivs: [20, 20, 20, 20, 20, 20] });
       const ace = team[team.length - 1];
+      // Leaders use the TM they hand out (Misty's Starmie has Water Pulse), replacing their weakest attack.
+      const tmRaw = def.tm || g.tm;
+      const tmMove = typeof tmRaw === 'number' ? tmRaw : tmRaw && Dex.moveByKey(tmRaw);
+      const mv = tmMove && Dex.move(tmMove);
+      // Same-type TMs count too: the newest learnsets drop some old TM compatibility (Starmie and Water Pulse).
+      if (mv && (Dex.canLearnTM(ace.pid, tmMove) || Dex.mon(ace.pid).t.includes(mv.t)) && !ace.moves.some(x => x.id === tmMove)) {
+        const entry = { id: tmMove, pp: Mon.maxPP({ id: tmMove, up: 0 }), up: 0 };
+        if (ace.moves.length < 4) ace.moves.push(entry);
+        else {
+          const attacks = ace.moves.filter(x => Dex.move(x.id).c !== 0);
+          const weakest = (attacks.length ? attacks : ace.moves).reduce((a, b) => ((Dex.move(a.id).p || 0) <= (Dex.move(b.id).p || 0) ? a : b));
+          if (mv.c === 0 || (Dex.move(weakest.id).p || 0) < (mv.p || 0)) ace.moves[ace.moves.indexOf(weakest)] = entry;
+        }
+      }
       const late = gi >= 5;
       const items = g.trial ? [] : [I(late ? 'full-restore' : 'hyper-potion'), I(late ? 'full-restore' : 'super-potion')].filter(Boolean);
       const flags = {};

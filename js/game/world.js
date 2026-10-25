@@ -392,7 +392,7 @@
 
     // Strong but legal level-up moveset for important trainers.
     bestMoves(pid, lvl) {
-      const ls = Dex.learnset(pid).l;
+      const ls = Dex.levelMoves(pid);
       const types = Dex.mon(pid).t;
       const cands = new Map();
       for (const [lv, mid] of ls) if (lv <= lvl) cands.set(mid, Dex.move(mid));

@@ -15,6 +15,7 @@
   const CLASS_PL = ['Statusowy', 'Fizyczny', 'Specjalny'];
 
   const learnCache = {};
+  const levelCache = {};
 
   const Dex = PW.Dex = {
     TYPE_PL, STAT_PL, STAT_SHORT, CLASS_PL,
@@ -73,9 +74,43 @@
       learnCache[pid] = ls;
       return ls;
     },
+    // Pre-evolution of a form (regional forms keep their region: Galarian Linoone -> Galarian Zigzagoon).
+    preForm(pid) {
+      const p = D().pokemon[pid];
+      const sp = p && D().species[p.s];
+      if (!sp || !sp.ef) return null;
+      const pre = D().species[sp.ef];
+      return (p.fm && pre.f.find(f => D().pokemon[f] && D().pokemon[f].fm === p.fm)) || Dex.defaultForm(sp.ef);
+    },
+    // Level-up moves at the levels older games used, for Pokémon that NPCs bring. Scarlet/Violet list
+    // nearly every move of an evolved Pokémon at Lv1, so a Lv1 move takes the level its pre-evolution
+    // learns it at: a Lv21 Starmie has Swift and Rapid Spin, not Psychic and Hydro Pump. A strong Lv1
+    // move the pre-evolution never learns (Mismagius's Phantom Force) comes after its last move.
+    levelMoves(pid) {
+      if (levelCache[pid]) return levelCache[pid];
+      const pre = Dex.preForm(pid);
+      const preLv = new Map();
+      let preLast = 1;
+      if (pre && pre !== pid) for (const [lv, mid] of Dex.levelMoves(pre)) { if (lv > 0 && !preLv.has(mid)) preLv.set(mid, lv); preLast = Math.max(preLast, lv); }
+      const eff = (lv, mid) => {
+        if (lv !== 1 || !pre) return lv;
+        if (preLv.has(mid)) return preLv.get(mid);
+        return (D().moves[mid].p || 0) >= 75 ? preLast : 1;
+      };
+      const out = Dex.learnset(pid).l.map(([lv, mid]) => [eff(lv, mid), mid]);
+      // An evolved Pokémon keeps what it learned before evolving (up to the evolution level when it has one).
+      if (pre && pre !== pid) {
+        const own = new Set(out.map(x => x[1]));
+        const row = (D().species[D().pokemon[pre].s].evo || []).find(r => r.to === pid || D().pokemon[r.to].s === D().pokemon[pid].s);
+        const cap = row && row.trig === 'level-up' && row.lvl ? row.lvl : 100;
+        for (const [lv, mid] of Dex.levelMoves(pre)) if (lv > 0 && lv <= cap && !own.has(mid)) { out.push([lv, mid]); own.add(mid); }
+      }
+      out.sort((a, b) => a[0] - b[0]);
+      return (levelCache[pid] = out);
+    },
     // Moves a wild/trainer Pokémon knows at a level: the last four level-up moves (as in the games).
     movesAtLevel(pid, level) {
-      const ls = Dex.learnset(pid).l;
+      const ls = Dex.levelMoves(pid);
       const known = [];
       for (const [lv, mid] of ls) {
         if (lv > level) break;
