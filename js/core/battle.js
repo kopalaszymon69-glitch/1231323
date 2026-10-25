@@ -787,8 +787,13 @@
       if (['gigaton-hammer', 'blood-moon'].includes(mv.k) && bt.v.lastWas === moveId) { this.msg('Nie można użyć tego ruchu dwa razy z rzędu!'); return; }
       bt.v.lastWas = moveId;
 
+      // Queenly Majesty / Dazzling / Armor Tail block priority moves aimed at the holder.
+      if (!selfTarget && this.priority(bt, mv, a) > 0 && ['queenly-majesty', 'dazzling', 'armor-tail'].includes(target.ability()) && !this.moldBreaks(bt)) {
+        this.msg(target.name + ' nie pozwala użyć tego ruchu!'); return;
+      }
       // Protection
-      if (!selfTarget && target.v.protect && (mv.fl || []).includes('protect') && !zInfo && !maxInfo) {
+      const unseen = bt.ability() === 'unseen-fist' && (mv.fl || []).includes(CONTACT);
+      if (!selfTarget && target.v.protect && (mv.fl || []).includes('protect') && !zInfo && !maxInfo && !unseen) {
         if (['feint', 'shadow-force', 'phantom-force', 'hyperspace-hole', 'hyperspace-fury'].includes(mv.k)) {
           target.v.protect = false; this.msg(target.name + ' traci osłonę!');
         } else {
@@ -1642,6 +1647,7 @@
       if (a === 'dragons-maw' && tKey === 'dragon') bp *= 1.5;
       if (a === 'rocky-payload' && tKey === 'rock') bp *= 1.5;
       if (a === 'water-bubble' && tKey === 'water') bp *= 2;
+      if (a === 'supreme-overlord') bp *= 1 + 0.1 * Math.min(5, bt.side.faintedCount);
       if (['overgrow', 'blaze', 'torrent', 'swarm'].includes(a) && bt.hpFrac() <= 1 / 3) {
         if ((a === 'overgrow' && tKey === 'grass') || (a === 'blaze' && tKey === 'fire') || (a === 'torrent' && tKey === 'water') || (a === 'swarm' && tKey === 'bug')) bp *= 1.5;
       }
@@ -1955,6 +1961,22 @@
       if (['ice-hammer', 'hammer-arm'].includes(k)) { /* covered by meta stat changes */ }
     }
 
+    // Darmanitan switches to Zen Mode at half HP or less and back above it.
+    zenMode(bt) {
+      const k = bt.data.k;
+      const toZen = bt.hpFrac() <= 0.5;
+      const map = { 'darmanitan-standard': 'darmanitan-zen', 'darmanitan-galar-standard': 'darmanitan-galar-zen' };
+      const rev = { 'darmanitan-zen': 'darmanitan-standard', 'darmanitan-galar-zen': 'darmanitan-galar-standard' };
+      const target = toZen ? map[k] : rev[k];
+      if (!target) return;
+      const pid = Dex.monByKey(target);
+      if (!pid) return;
+      if (!bt.mon._basePid) bt.mon._basePid = bt.mon.pid;
+      bt.mon.pid = pid; bt.statCache = null; bt.resetTypes();
+      this.msg(toZen ? bt.name + ' wchodzi w Tryb Zen!' : bt.name + ' wychodzi z Trybu Zen!');
+      this.ev({ t: 'transform', side: bt.side.id, pid });
+    }
+
     // ------------------------------------------------------------------ gimmicks
     canMega(bt) {
       const side = bt.side;
@@ -2128,6 +2150,7 @@
         if (bt.itemKey === 'toxic-orb' && !bt.mon.st) this.setStatus(bt, 'tox', bt, true);
         if (bt.itemKey === 'flame-orb' && !bt.mon.st) this.setStatus(bt, 'brn', bt, true);
         if (bt.v.dyna) { bt.v.dyna--; if (!bt.v.dyna) { bt.v.dyna = 1; this.endDynamax(bt); } }
+        if (a === 'zen-mode') this.zenMode(bt);
         if (bt.v.roosted) bt.v.roosted = false;
         if (bt.v.protectedTurn !== this.turn) bt.v.protectChain = 0;
         bt.turnsIn++;

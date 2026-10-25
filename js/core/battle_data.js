@@ -111,7 +111,7 @@
     'run-away shadow-tag arena-trap magnet-pull sharpness intrepid-sword dauntless-shield download water-compaction ' +
     'cotton-down anger-point big-pecks flower-veil swift-swim stench poison-touch toxic-boost flare-boost queenly-majesty ' +
     'dazzling armor-tail mirror-armor good-as-gold thermal-exchange orichalcum-pulse hadron-engine sword-of-ruin tablets-of-ruin ' +
-    'vessel-of-ruin beads-of-ruin supreme-overlord unseen-fist infiltrator corrosion comatose costar zen-mode').split(/\s+/));
+    'vessel-of-ruin beads-of-ruin supreme-overlord unseen-fist infiltrator corrosion comatose zen-mode merciless liquid-ooze early-bird gluttony unburden suction-cups heavy-metal light-metal mummy lingering-aroma liquid-voice long-reach').split(/\s+/));
 
   PW.BD = {
     TYPE_ITEMS, RESIST_BERRIES, CURE_BERRIES, PINCH_BERRIES, FLAVOR_BERRIES, Z_MOVES, Z_CRYSTALS, zPower,

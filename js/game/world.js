@@ -312,15 +312,8 @@
         rows = rows.filter(r => !r.region || r.region === regionNum);
         let next = null;
         for (const r of rows) {
-          let need = 999;
-          if (r.trig === 'level-up' && r.lvl) need = r.lvl;
-          else if (r.trig === 'level-up' && (r.happy || r.affection)) need = 22;
-          else if (r.trig === 'level-up') need = 34;
-          else if (r.trig === 'use-item') need = sp.baby ? 20 : 32;
-          else if (r.trig === 'trade') need = 38;
-          else need = 40;
           if (r.gender && r.gender === 1 && U.chance(0.5)) continue;
-          if (lvl >= need) { next = r; break; }
+          if (lvl >= World.evoNeed(r, sp)) { next = r; break; }
         }
         if (!next) break;
         let to = next.to;
@@ -332,6 +325,39 @@
         cur = to;
       }
       return cur;
+    },
+
+    // Level from which trainers carry the evolved stage of an evolution row.
+    evoNeed(r, sp) {
+      if (r.trig === 'level-up' && r.lvl) return r.lvl;
+      if (r.trig === 'level-up' && (r.happy || r.affection)) return 22;
+      if (r.trig === 'level-up') return 34;
+      if (r.trig === 'use-item') return sp.baby ? 20 : 32;
+      if (r.trig === 'trade') return 38;
+      return 40;
+    },
+
+    // Steps back down the line while the level is too low for the stage (no Lv20 Dusclops).
+    devolveForLevel(pid, lvl) {
+      let cur = pid;
+      for (let guard = 0; guard < 3; guard++) {
+        const p = Dex.mon(cur);
+        const sp = Dex.species(p.s);
+        if (!sp.ef) break;
+        const pre = Dex.species(sp.ef);
+        if (pre.baby) break;
+        const rows = (pre.evo || []).filter(r => Dex.mon(r.to) && Dex.mon(r.to).s === p.s);
+        const row = rows.find(r => r.to === cur) || rows[0];
+        if (!row || lvl >= World.evoNeed(row, pre)) break;
+        if (row.from) cur = row.from;
+        else cur = pre.f.find(fid => Dex.mon(fid).fm && Dex.mon(fid).fm === p.fm) || Dex.defaultForm(sp.ef);
+      }
+      return cur;
+    },
+
+    // Stage of a species line that fits a level, from either direction.
+    stageForLevel(pid, lvl, regionId) {
+      return World.evolveForLevel(World.devolveForLevel(pid, lvl), lvl, regionId);
     },
 
     // Strong but legal level-up moveset for important trainers.
@@ -423,7 +449,7 @@
       for (let i = 0; i < n; i++) {
         const e = U.pick(species);
         const lvl = U.clamp(PW.Game.scaleLevel(regionId, base + U.int(0, 2) + Math.floor(badges / 3) + (cls === 'acetrainer' || cls === 'veteran' ? 3 : 0)), 2, 100);
-        const pid = World.evolveForLevel(e.pid, lvl, regionId);
+        const pid = World.stageForLevel(e.pid, lvl, regionId);
         team.push(Mon.create({ pid, level: lvl, ot: name }));
       }
       const prize = c[2] * team[team.length - 1].lvl;
@@ -448,7 +474,7 @@
         for (let j = 0; j < n; j++) {
           const lvl = U.clamp(PW.Game.scaleLevel(regionId, ace - U.int(3, 6)), 2, 100);
           const base = pool.length ? U.pick(pool) : Dex.monByKey('rattata');
-          team.push(Mon.create({ pid: World.evolveForLevel(base, lvl, regionId), level: lvl, ot: name }));
+          team.push(Mon.create({ pid: World.stageForLevel(base, lvl, regionId), level: lvl, ot: name }));
         }
         out.push({ cls, title: CLASSES[cls][0], name, sprite: CLASSES[cls][1], team, prize: CLASSES[cls][2] * team[team.length - 1].lvl, ai: 'trainer' });
       }
