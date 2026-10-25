@@ -512,7 +512,7 @@
       const out = [];
       const has = m => loc.w && loc.w[m] && loc.w[m].length;
       out.push({ id: 'explore', label: has('walk') ? 'Szukaj Pokémonów' : 'Rozejrzyj się', icon: has('walk') ? '🌿' : '👀', ap: 1 });
-      if (has('surf')) out.push({ id: 'surf', label: 'Surfuj', icon: '🏄', ap: 1, ok: W().methodUnlocked(regionId, 'surf'), why: 'Surfowanie wymaga ' + (W().region(regionId).surf || 0) + ' odznak w tym regionie.' });
+      if (has('surf')) out.push({ id: 'surf', label: 'Surfuj', icon: '🏄', ap: 1, ok: W().methodUnlocked(regionId, 'surf'), why: 'Surfowanie wymaga ' + (W().region(regionId).surf || 0) + ' ' + PW.U.plural(W().region(regionId).surf || 0, ['odznaki', 'odznak', 'odznak']) + ' w tym regionie.' });
       for (const rod of ['old-rod', 'good-rod', 'super-rod']) {
         if (has(rod)) out.push({ id: rod, label: W().METHOD_PL[rod], icon: '🎣', ap: 1, ok: W().methodUnlocked(regionId, rod), why: 'Potrzebujesz: ' + Dex.item(I(rod)).n + '.' });
       }

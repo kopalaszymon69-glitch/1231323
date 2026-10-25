@@ -107,6 +107,15 @@
     },
     sprite(pid, opts) {
       opts = opts || {};
+      const A = PW.Assets;
+      if (A && A.bundled) {
+        const p = D().pokemon[pid];
+        const ids = [pid, p ? Dex.defaultForm(p.s) : pid];
+        const groups = opts.back ? [opts.shiny ? 'backshiny' : 'back', 'back'] : [];
+        groups.push(opts.shiny ? 'shiny' : 'front', 'front');
+        for (const id of ids) for (const gr of groups) { const u = A.get(gr, id); if (u) return u; }
+        return '';
+      }
       const base = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
       if (opts.art) return base + 'other/official-artwork/' + (opts.shiny ? 'shiny/' : '') + pid + '.png';
       if (opts.home) return base + 'other/home/' + (opts.shiny ? 'shiny/' : '') + pid + '.png';
@@ -122,10 +131,16 @@
     },
     itemSprite(iid) {
       const it = D().items[iid];
-      if (!it) return '';
-      return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' + it.k + '.png';
+      return it ? Dex.itemSpriteKey(it.k) : '';
+    },
+    itemSpriteKey(k) {
+      const A = PW.Assets;
+      if (A && A.bundled) return A.get('items', k) || A.get('items', k + '--held') || A.get('items', 'poke-ball');
+      return 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' + k + '.png';
     },
     trainerSprite(name) {
+      const A = PW.Assets;
+      if (A && A.bundled) return A.get('trainers', name) || A.get('trainers', 'youngster');
       return 'https://play.pokemonshowdown.com/sprites/trainers/' + name + '.png';
     },
     isFullyEvolved(pid) {

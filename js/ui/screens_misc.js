@@ -304,7 +304,7 @@
       const chk = (k, label, desc) => `<label class="check"><input type="checkbox" data-k="${k}" ${st[k] ? 'checked' : ''}> <span><b>${label}</b><br><span class="small muted">${desc}</span></span></label>`;
       c.innerHTML = `<div class="card col"><div class="section-title">⚙️ Opcje</div>
           ${chk('ap', 'Punkty Akcji (PA)', 'Wyprawy kosztują PA, które odnawiają się z czasem (jak w PokeWars). Wyłącz, by grać bez limitu.')}
-          ${chk('anim', 'Animowane sprite\'y', 'W walkach używaj animowanych sprite\'ów (Pokémon Showdown).')}
+          ${PW.Assets.bundled ? '' : chk('anim', 'Animowane sprite\'y', 'W walkach używaj animowanych sprite\'ów (Pokémon Showdown).')}
           ${chk('cries', 'Odgłosy Pokémonów', 'Odtwarzaj okrzyk Pokémona, gdy pojawia się w walce.')}
           ${chk('nicknames', 'Pytaj o przezwiska', 'Po złapaniu lub wykluciu zaproponuj nadanie przezwiska.')}
           ${chk('scaling', 'Skalowanie trenerów w kolejnych regionach', 'Po zostaniu Mistrzem trenerzy w nowych regionach walczą na twoim poziomie (dzikie Pokémony pozostają oryginalne).')}
@@ -315,27 +315,44 @@
         </div>
         <div class="card col"><div class="section-title">💾 Zapis gry</div>
           <p class="small muted">Gra zapisuje się automatycznie w przeglądarce. Ostatni zapis: ${new Date(s.saved).toLocaleString('pl-PL')}.</p>
-          <div class="row"><button class="btn primary" id="save">Zapisz teraz</button><button class="btn" id="export">📤 Eksportuj do pliku</button><button class="btn" id="import">📂 Importuj z pliku</button><input type="file" id="file" class="hidden" accept=".json">
+          <div class="row"><button class="btn primary" id="save">Zapisz teraz</button><button class="btn" id="export">📤 Eksportuj zapis</button><button class="btn" id="import">📂 Importuj zapis</button><input type="file" id="file" class="hidden" accept=".json,.txt">
           <button class="btn" id="title">↩ Ekran tytułowy</button><button class="btn" id="wipe" style="border-color:var(--danger)">🗑 Usuń zapis</button></div></div>`;
       for (const i of c.querySelectorAll('[data-k]')) i.onchange = () => { st[i.dataset.k] = i.checked; Game().save(); UI.updateTop(); };
       for (const i of c.querySelectorAll('[data-sel]')) i.onchange = () => { const v = i.value; st[i.dataset.sel] = /^\d+$/.test(v) ? +v : v; Game().save(); };
       c.querySelector('#save').onclick = () => { Game().save(); UI.toast('Zapisano grę.', 'good'); };
+      // Export shows the save as text to copy; a file download is offered only where the page may start one.
       c.querySelector('#export').onclick = () => {
-        const blob = new Blob([Game().exportSave()], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = 'pokewedrowka-' + s.player.name + '-' + new Date().toISOString().slice(0, 10) + '.json';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        const text = Game().exportSave();
+        const buttons = [{ label: '📋 Kopiuj', cls: 'primary', onClick: m => {
+          const ta = m.body.querySelector('textarea');
+          const fallback = () => { ta.select(); UI.toast('Zaznaczono zapis – skopiuj go (Ctrl+C).'); };
+          try { navigator.clipboard.writeText(text).then(() => UI.toast('Skopiowano zapis.', 'good'), fallback); } catch (e) { fallback(); }
+        } }];
+        if (!PW.Assets.bundled) buttons.push({ label: '💾 Pobierz plik', onClick: () => {
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+          a.download = 'pokewedrowka-' + s.player.name + '-' + new Date().toISOString().slice(0, 10) + '.json';
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+        } });
+        buttons.push({ label: 'Zamknij' });
+        UI.modal({ title: 'Eksport zapisu', wide: true, buttons,
+          body: `<p class="small muted">Skopiuj ten tekst i zachowaj go, np. w notatkach. Wklejisz go w „Importuj zapis”, także na innym urządzeniu.</p>
+            <textarea id="save-out" readonly rows="8" style="width:100%;font-family:monospace;font-size:11px">${esc(text)}</textarea>` });
       };
+      const load = text => { try { Game().importSave(text.trim()); while (UI.topModal()) UI.topModal().close(); UI.startGame(); UI.toast('Wczytano zapis.', 'good'); } catch (e) { UI.alert('Błąd', 'Nie udało się wczytać zapisu: ' + esc(e.message)); } };
       const file = c.querySelector('#file');
-      c.querySelector('#import').onclick = () => file.click();
       file.onchange = () => {
         const f = file.files[0]; if (!f) return;
         const r = new FileReader();
-        r.onload = () => { try { Game().importSave(r.result); UI.startGame(); UI.toast('Wczytano zapis.', 'good'); } catch (e) { UI.alert('Błąd', esc(e.message)); } };
+        r.onload = () => load(r.result);
         r.readAsText(f);
       };
+      c.querySelector('#import').onclick = () => UI.modal({ title: 'Import zapisu', wide: true,
+        body: `<p class="small muted">Wklej tekst zapisu albo wybierz plik .json. Obecny postęp zostanie zastąpiony.</p>
+          <textarea id="save-in" rows="8" style="width:100%;font-family:monospace;font-size:11px" placeholder="{&quot;player&quot;: …}"></textarea>`,
+        buttons: [{ label: 'Wczytaj', cls: 'primary', onClick: m => load(m.body.querySelector('textarea').value) },
+          { label: '📂 Z pliku', onClick: m => { m.close(); file.click(); } }, { label: 'Anuluj' }] });
       c.querySelector('#title').onclick = () => { Game().save(); PW.Screens.title.render(); };
       c.querySelector('#wipe').onclick = async () => {
         if (await UI.confirm('Usuń zapis', 'Na pewno usunąć zapis gry? Tej operacji nie da się cofnąć (chyba że masz kopię w pliku).', 'Usuń')) { Game().wipe(); PW.Screens.title.render(); }

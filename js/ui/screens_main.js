@@ -144,7 +144,7 @@
             ${facs.includes('pc') ? `<button class="action" data-fac="pc"><span class="ic">🏥</span><span><div class="t">Centrum Pokémon</div><div class="d">Leczenie i PC</div></span></button>` : ''}
             ${facs.includes('mart') || facs.includes('dept') ? `<button class="action" data-fac="shop"><span class="ic">🛒</span><span><div class="t">${facs.includes('dept') ? 'Dom Towarowy' : 'Poké Mart'}</div><div class="d">Kupuj i sprzedawaj</div></span></button>` : ''}
             ${gyms.map(gi => { const g = reg.gyms[gi]; const has = r.badges.includes(gi); const can = r.badges.length >= gi || r.champion;
-              return `<button class="action special ${can ? '' : 'locked'}" data-gym="${gi}"><span class="ic">${UI.badge(g.type, !has, 34)}</span><span><div class="t">${g.trial ? 'Próba' : 'Sala'}: ${esc(g.leader)}</div><div class="d">${has ? '✔ ' + esc(g.badge) + ' (rewanż)' : can ? esc(Dex.TYPE_PL[g.type]) + ' · ' + esc(g.badge) : 'Najpierw zdobądź ' + gi + ' odznak'}</div></span></button>`; }).join('')}
+              return `<button class="action special ${can ? '' : 'locked'}" data-gym="${gi}"><span class="ic">${UI.badge(g.type, !has, 34)}</span><span><div class="t">${g.trial ? 'Próba' : 'Sala'}: ${esc(g.leader)}</div><div class="d">${has ? '✔ ' + esc(g.badge) + ' (rewanż)' : can ? esc(Dex.TYPE_PL[g.type]) + ' · ' + esc(g.badge) : 'Najpierw zdobądź ' + gi + ' ' + U.plural(gi, g.trial ? ['pieczęć', 'pieczęcie', 'pieczęci'] : ['odznakę', 'odznaki', 'odznak'])}</div></span></button>`; }).join('')}
             ${facs.includes('league') ? `<button class="action special" data-fac="league"><span class="ic">🏆</span><span><div class="t">Liga Pokémon</div><div class="d">${r.champion ? 'Jesteś Mistrzem – obroń tytuł!' : 'Elitarna Czwórka i Mistrz'}</div></span></button>` : ''}
             ${facs.includes('daycare') ? `<button class="action" data-fac="daycare"><span class="ic">🥚</span><span><div class="t">Hodowla Pokémonów</div><div class="d">${s.daycare.egg ? 'Czeka jajo!' : s.daycare.mons.length + '/2 Pokémonów'}</div></span></button>` : ''}
             ${extra.map((t, i) => `<button class="action special" data-extra="${i}"><span class="ic">🌟</span><span><div class="t">${esc(t.title)}: ${esc(t.name)}</div><div class="d">Najsilniejszy przeciwnik regionu</div></span></button>`).join('')}
@@ -183,7 +183,7 @@
       const btn = (l, label) => `<button class="btn sm" data-go-loc="${l.id}">${label}</button>`;
       return (prev ? btn(prev, '← ' + esc(prev.n)) : '') + (next ? btn(next, esc(next.n) + ' →') : '') +
         (center && center !== loc.id ? btn({ id: center }, '🏥 ' + esc(PW.World.locName(reg.id, center))) : '') +
-        `<button class="btn sm right" onclick="PW.UI.go('map')">🗺️ Mapa regionu</button>`;
+        `<button class="btn sm right" data-goto="map">🗺️ Mapa regionu</button>`;
     },
     drawResidents(box, all) {
       const s = PW.Game.s;
@@ -237,7 +237,7 @@
       const tabs = PW.World.regions().map(x => `<button class="region-tab ${x.id === regionId ? 'active' : ''} ${s.unlocked.includes(x.id) ? '' : 'locked'}" data-r="${x.id}">${esc(x.name)}${PW.Game.isChampion(x.id) ? ' 🏆' : ''}</button>`).join('');
       const groups = {};
       for (const l of reg.locs) {
-        const key = l.r >= 99 ? 'Po zostaniu Mistrzem' : l.r === 0 ? 'Początek przygody' : 'Wymaga ' + l.r + ' ' + (reg.trials ? 'pieczęci' : 'odznak');
+        const key = l.r >= 99 ? 'Po zostaniu Mistrzem' : l.r === 0 ? 'Początek przygody' : 'Wymaga ' + l.r + ' ' + (reg.trials ? 'pieczęci' : U.plural(l.r, ['odznaki', 'odznak', 'odznak']));
         (groups[key] = groups[key] || []).push(l);
       }
       c.innerHTML = `
@@ -268,7 +268,7 @@
       for (const it of c.querySelectorAll('[data-l]')) it.onclick = () => {
         const l = reg._loc[it.dataset.l];
         if (!unlocked) return UI.toast('Region zablokowany.', 'bad');
-        if (!PW.World.accessible(regionId, l)) return UI.toast(l.r >= 99 ? 'Dostępne po zostaniu Mistrzem regionu.' : 'Potrzebujesz ' + l.r + ' odznak w tym regionie.', 'bad');
+        if (!PW.World.accessible(regionId, l)) return UI.toast(l.r >= 99 ? 'Dostępne po zostaniu Mistrzem regionu.' : 'Potrzebujesz ' + l.r + ' ' + U.plural(l.r, ['odznaki', 'odznak', 'odznak']) + ' w tym regionie.', 'bad');
         const msgs = PW.Flow.travel(regionId, l.id);
         UI.go('location');
         for (const m of msgs) UI.toast(m, 'gold');

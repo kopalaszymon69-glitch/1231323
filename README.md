@@ -65,6 +65,21 @@ python3 tools/build_world.py                      # js/data/world.js
 
 Spotkania w Paldei (`tools/paldea_species.json`) pochodzą z map Pokéarth na Serebii, bo PokeAPI nie ma danych o spotkaniach ze Scarlet/Violet.
 
+## Wersja samodzielna (bez zewnętrznych grafik)
+
+Zwykła wersja pobiera grafiki i odgłosy z PokeAPI i Pokémon Showdown. Na serwerach, które pozwalają tylko na pliki z tej samej domeny (np. artifacty claude.ai), użyj wersji samodzielnej w `dist/`. Grafiki są w niej spakowane w arkusze WebP, a odgłosy w pliki MP3:
+
+```sh
+git clone --depth 1 --filter=blob:none --no-checkout https://github.com/PokeAPI/sprites.git
+(cd sprites && git sparse-checkout set --no-cone '/sprites/pokemon/*.png' '/sprites/pokemon/back/*.png' \
+  '/sprites/pokemon/shiny/*.png' '/sprites/pokemon/back/shiny/*.png' '/sprites/items/*.png' && git checkout master)
+git clone --depth 1 --filter=blob:none --no-checkout https://github.com/PokeAPI/cries.git
+(cd cries && git sparse-checkout set --no-cone '/cries/pokemon/latest/*.ogg' && git checkout main)
+# sprite'y trenerów: https://play.pokemonshowdown.com/sprites/trainers/<nazwa>.png
+# dla nazw z `node tools/bundle_needs.js` (pole "trainers"), zapisane w katalogu trainers/
+python3 tools/build_bundle.py --sprites sprites --cries cries --trainers trainers   # wymaga Pillow i ffmpeg
+```
+
 ## Testy
 
 ```sh

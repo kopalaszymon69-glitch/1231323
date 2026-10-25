@@ -27,6 +27,7 @@
   <script src="js/data/world.js"></script>
   <!-- Engine -->
   <script src="js/core/util.js"></script>
+  <script src="js/core/assets.js"></script>
   <script src="js/core/dex.js"></script>
   <script src="js/core/pokemon.js"></script>
   <script src="js/core/battle_data.js"></script>
@@ -49,6 +50,6 @@
   <script src="js/ui/screens_main.js"></script>
   <script src="js/ui/screens_mons.js"></script>
   <script src="js/ui/screens_misc.js"></script>
-  <script>window.addEventListener('DOMContentLoaded', () => PW.UI.init());</script>
+  <script>window.addEventListener('DOMContentLoaded', () => PW.Assets.boot(PW.UI.init));</script>
 </body>
 </html>

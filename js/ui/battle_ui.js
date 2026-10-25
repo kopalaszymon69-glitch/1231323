@@ -223,7 +223,7 @@
       const ball = BattleUI.$('#b-ball');
       const foe = BattleUI.$('#b-foe');
       const sp = BattleUI.skip ? 0.25 : BattleUI.speed();
-      ball.src = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/' + e.item + '.png';
+      ball.src = Dex.itemSpriteKey(e.item);
       ball.className = 'ball-anim px show';
       await sleep(600);
       foe.classList.add('gone');
@@ -238,6 +238,7 @@
       else { ball.className = 'ball-anim px'; foe.classList.remove('gone'); BattleUI.flash(1, 'enter', 500); await sleep(300); }
     },
     cry(pid) {
+      if (PW.Assets.bundled) { const p = Dex.mon(pid); PW.Assets.playCry(p && pid > 10000 ? pid : (p ? p.s : pid), 0.35); return; }
       try { const a = new Audio(Dex.cry(pid)); a.volume = 0.35; a.play().catch(() => {}); } catch (e) { /* ignore */ }
     },
 

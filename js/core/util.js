@@ -32,6 +32,8 @@
       for (const x of list) { r -= Math.max(0, w(x)); if (r < 0) return x; }
       return list[list.length - 1];
     },
+    // Polish noun form for a count: forms = [1, 2–4 (not 12–14), other], e.g. ['odznakę', 'odznaki', 'odznak'].
+    plural(n, forms) { const t = n % 10, h = n % 100; return n === 1 ? forms[0] : t >= 2 && t <= 4 && (h < 12 || h > 14) ? forms[1] : forms[2]; },
     clamp(v, a, b) { return Math.max(a, Math.min(b, v)); },
     uid() { return Date.now().toString(36) + Math.floor(rand() * 1e9).toString(36); },
     money(n) { return '₽' + Math.floor(n).toLocaleString('pl-PL'); },

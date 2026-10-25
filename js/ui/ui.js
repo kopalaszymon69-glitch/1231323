@@ -22,6 +22,8 @@
       window.addEventListener('error', e => report(e.message));
       window.addEventListener('unhandledrejection', e => report(e.reason && (e.reason.stack || e.reason.message) || e.reason));
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.topModal()) UI.topModal().close(); });
+      // Delegated so markup needs no inline handlers (strict hosts block them).
+      document.addEventListener('click', e => { const t = e.target.closest('[data-goto]'); if (t) UI.go(t.dataset.goto); });
       setInterval(() => { if (PW.Game.s) { PW.Game.tickAP(); UI.updateTop(); } }, 5000);
       setInterval(() => { if (PW.Game.s) PW.Game.s.play += 30; }, 30000);
       if (PW.Game.load()) UI.startGame(); else Screens.title.render();
@@ -36,7 +38,7 @@
     layout() {
       UI.el.innerHTML = `
         <header class="topbar">
-          <div class="logo" onclick="PW.UI.go('location')">POKÉ<span>WĘDRÓWKA</span></div>
+          <div class="logo" data-goto="location">POKÉ<span>WĘDRÓWKA</span></div>
           <div class="tb-stats" id="tb"></div>
         </header>
         <div class="main">
@@ -78,7 +80,7 @@
         <span class="chip" title="Pora dnia (czas rzeczywisty) i pogoda: ${w ? esc(w.label) : ''}">${todIcon}<span class="hide-m">${w ? ' ' + esc(w.label) : ''}</span></span>
         <span class="chip" title="Pieniądze">💰 <b>${U.money(p.money)}</b></span>
         ${s.settings.ap ? `<span class="chip" title="Punkty Akcji – odnawiają się z czasem${nextAp ? ' (następny za ' + nextAp + ' s)' : ''}">⚡ <b>${p.ap}</b>/${apMax}<span class="apbar hide-m"><div style="width:${Math.min(100, p.ap / apMax * 100)}%"></div></span></span>` : ''}
-        <span class="trainer-mini" onclick="PW.UI.go('profile')" title="Poziom trenera ${p.tlvl}">
+        <span class="trainer-mini" data-goto="profile" title="Poziom trenera ${p.tlvl}">
           ${UI.trainerImg(p.avatar, 'width:34px;height:34px')}
           <span class="tm-name"><b>${esc(p.name)}</b><br><span class="tiny muted">Poz. ${p.tlvl}</span><div class="lvlbar"><div style="width:${Math.min(100, p.texp / PW.Game.texpNeeded(p.tlvl) * 100)}%"></div></div></span>
         </span>`;
@@ -112,6 +114,11 @@
     },
     monImg(pid, o) {
       o = o || {};
+      if (PW.Assets.bundled) {
+        // Sprite sheets hold front and back sprites only; a missing back sprite is the front one mirrored.
+        const flip = o.back && !PW.Assets.has(o.shiny ? 'backshiny' : 'back', pid) && !PW.Assets.has('back', pid);
+        return `<img class="${o.cls || ''} px${flip ? ' flip' : ''}" src="${Dex.sprite(pid, { back: o.back, shiny: o.shiny })}" alt="${esc(Dex.mon(pid) ? Dex.mon(pid).n : '')}" style="${o.style || ''}">`;
+      }
       const base = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/';
       const sh = o.shiny ? 'shiny/' : '';
       let src, fb = [];
@@ -127,15 +134,18 @@
     eggImg(style) { return `<span style="font-size:44px;${style || ''}">🥚</span>`; },
     monThumb(m, style) { return m.egg ? UI.eggImg(style) : UI.monImg(m.pid, { shiny: m.shiny, style }); },
     trainerImg(sprite, style) {
+      if (PW.Assets.bundled) return `<img class="px" src="${Dex.trainerSprite(sprite)}" style="${style || ''}" alt="">`;
       return `<img class="px" src="${Dex.trainerSprite(sprite)}" data-fb="${Dex.trainerSprite('youngster')}" onerror="PW.UI.imgFallback(this)" style="${style || ''}" alt="">`;
     },
     itemImg(id, style) {
       if (typeof id === 'string' && id.startsWith('tm')) {
         const mv = Dex.move(+id.slice(2));
+        if (PW.Assets.bundled) return `<img class="px" src="${Dex.itemSpriteKey('tm-' + (mv ? Dex.typeKey(mv.t) : 'normal'))}" style="${style || ''}" alt="">`;
         return `<img class="px" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tm-${mv ? Dex.typeKey(mv.t) : 'normal'}.png" data-fb="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/tm-normal.png" onerror="PW.UI.imgFallback(this)" style="${style || ''}" alt="">`;
       }
       const it = Dex.item(id);
       if (!it) return '';
+      if (PW.Assets.bundled) return `<img class="px" src="${Dex.itemSprite(id)}" style="${style || ''}" alt="">`;
       const k = it.k.replace(/-z$/, '-z--held');
       return `<img class="px" src="${Dex.itemSprite(id)}" data-fb="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/${k}.png|https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png" onerror="PW.UI.imgFallback(this)" style="${style || ''}" alt="">`;
     },
