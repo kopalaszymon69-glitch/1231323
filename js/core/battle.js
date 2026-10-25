@@ -84,6 +84,7 @@
       this.needSwitch = false;
       this.pendingSwitchReason = null;
       this.expLog = [];
+      this.movesSeen = []; // [species, move] for Pokédex research
       this.stolen = [];
       this.critCount = {};
     }
@@ -734,6 +735,7 @@
         else slot.pp -= (foe && foe.ability() === 'pressure' && mv.tg !== 'user') ? Math.min(2, slot.pp) : 1;
       }
       bt.mon.moveUse[moveId] = (bt.mon.moveUse[moveId] || 0) + 1;
+      this.movesSeen.push([Dex.mon(bt.mon.pid).s, moveId]);
       // Z-Move / Max Move transformation
       let zInfo = null, maxInfo = null;
       if (a.z && this.canZ(bt, mv)) zInfo = this.zMove(bt, mv);

@@ -95,7 +95,7 @@
                 <div>Zdolność: <b>${esc(ab ? ab.n : '?')}</b>${m.abil === 2 ? ' <span class="pill">ukryta</span>' : ''} ${impl ? '' : '<span class="pill" title="Efekt tej zdolności nie jest symulowany w walce">opis</span>'}<div class="small muted">${esc(ab ? ab.d : '')}</div></div>
                 <div>Przyjaźń: ${'❤'.repeat(hearts)}${'♡'.repeat(5 - hearts)} <span class="small muted">(${m.fr}/255)</span> ${m.pkrs ? '<span class="pill">Pokérus</span>' : ''}</div>
                 <div>Przedmiot: ${m.item ? UI.itemImg(m.item, 'width:24px;height:24px;vertical-align:middle') + ' <b>' + esc(PW.Items.name(m.item)) + '</b>' : '<span class="muted">brak</span>'}</div>
-                <div class="small muted">Trener: ${esc(m.ot || '?')} · Ball: ${esc(PW.Items.name(m.ball))}${m.met ? ' · Spotkany: ' + esc(PW.World.locName(m.met.r, m.met.l)) + (m.met.lvl ? ' (Lv ' + m.met.lvl + ')' : '') : ''}</div>
+                <div class="small muted">Trener: ${esc(m.ot || '?')} (ID ${String(m.tid !== undefined ? m.tid : '?').padStart(5, '0')}) · Gra: ${esc(PW.Shiny.langName(PW.Shiny.lang(m)))}${m.fateful ? ' · ✦ wydarzenie' : ''} · Ball: ${esc(PW.Items.name(m.ball))}${m.met ? ' · Spotkany: ' + esc(PW.World.locName(m.met.r, m.met.l)) + (m.met.lvl ? ' (Lv ' + m.met.lvl + ')' : '') : ''}</div>
               </div>
             </div>`;
         } else if (tab === 'stats') {
@@ -326,6 +326,8 @@
         <p class="muted">Zostaw tu dwa Pokémony. Zdobywają 1 pkt doświadczenia za każdy krok (opłata przy odbiorze: ₽100 + ₽100 za poziom). Kompatybilna para (wspólna grupa jaj lub Ditto) może złożyć jajo – IV, natura (Everstone), zdolność, Poké Ball i ruchy z jaja są dziedziczone jak w grach.</p>
         <div class="grid g2">${[0, 1].map(i => dc.mons[i] ? `<div data-w="${dc.mons[i].uid}">${UI.monCard(dc.mons[i], '<button class="btn sm">Odbierz</button>')}<div class="tiny muted">Grupy jaj: ${Dex.speciesOf(dc.mons[i].pid).eg.map(g => Dex.data.core.eggGroups[g]).join(', ')}</div></div>` : `<div class="mon-card" data-dep="1" style="justify-content:center;min-height:100px">➕ Zostaw Pokémona</div>`).join('')}</div>
         ${comp !== null ? `<p><b>Opiekun:</b> "${PW.Breeding.compatText(comp)}"</p>` : ''}
+        ${comp ? (PW.Shiny.masudaRolls(dc.mons[0], dc.mons[1]) ? `<p class="gold">✨ Metoda Masudy: Pokémony pochodzą z gier w różnych językach, więc jajo ma większą szansę na shiny (${PW.Shiny.oddsText(PW.Shiny.chance(6 + (Game().has('shiny-charm') ? 2 : 0)))}).</p>`
+          : '<p class="tiny muted">Metoda Masudy: para z gier w różnych językach (np. Ditto od turysty z zagranicy) daje sześć razy większą szansę na shiny.</p>') : ''}
         ${dc.egg ? `<div class="card" style="border-color:var(--gold)"><b>🥚 Opiekun znalazł jajo!</b> <button class="btn yellow" id="take-egg">Odbierz jajo</button></div>` : ''}
         </div>`;
       for (const d of c.querySelectorAll('[data-dep]')) d.onclick = async () => {

@@ -66,7 +66,8 @@
 
     onChampion(regionId) {
       const msgs = [];
-      if (!Game().has('poke-radar') && regionId === 'sinnoh') { give('poke-radar'); msgs.push('Profesor Rowan daje ci Poké Radar!'); }
+      if (!Game().has('poke-radar') && regionId === 'sinnoh') { give('poke-radar'); msgs.push('Profesor Rowan daje ci Poké Radar! Łańcuchy spotkań w trawie zwiększają szansę na shiny.'); }
+      if (!Game().has('poke-radar') && regionId === 'kalos') { give('poke-radar'); msgs.push('Naukowiec z laboratorium Profesora Sycamore\'a daje ci Poké Radar! Łańcuchy spotkań w trawie zwiększają szansę na shiny.'); }
       if (!Game().has('exp-charm')) { give('exp-charm'); }
       if (!Game().has('catching-charm')) { give('catching-charm'); msgs.push('Otrzymujesz Catching Charm – rzuty krytyczne zdarzają się częściej.'); }
       if (!Game().has('mega-ring') && Game().anyChampion()) { /* Mega Ring is only from Kalos */ }
@@ -75,6 +76,8 @@
 
     locationHooks(regionId, loc, out) {
       const r = Game().reg(regionId);
+      const lot = PW.Gifts.LOTTERIES[loc.id];
+      if (lot) out.push({ key: 'lottery:' + loc.id, icon: '🎟️', label: lot.name, desc: PW.Gifts.lotteryReady() ? 'Codzienne losowanie numeru ID – sprawdź, czy wygrałeś!' : 'Dziś już grałeś. Nowe losowanie jutro.', run: () => PW.Gifts.lotteryScene(regionId, loc) });
       // Move Reminder at tutor houses (costs a Heart Scale, as in Gen II–VII).
       if (loc.f.includes('tutor')) {
         out.push({ key: 'tutor:' + loc.id, icon: '📝', label: 'Przypominacz Ruchów', desc: 'Za 1 Heart Scale przypomni Pokémonowi zapomniany ruch.', run: () => ({ ui: 'reminder' }) });

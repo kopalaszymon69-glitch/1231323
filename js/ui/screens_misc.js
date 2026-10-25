@@ -142,7 +142,12 @@
           <div class="grow"><h2>Centrum Pokémon – ${esc(loc.n)}</h2><p>"Witaj w Centrum Pokémon! Czy mamy zaopiekować się twoimi Pokémonami?"</p>
           <div class="row"><button class="btn primary lg" id="heal">💗 Ulecz drużynę</button><button class="btn" id="pc">💻 PC</button><button class="btn" id="team">🎒 Drużyna</button>
           ${Game().has('tera-orb') ? `<span class="pill">Tera Orb: ${s.v_tera.charged ? 'naładowany ✨' : 'rozładowany'}</span>` : ''}</div></div></div></div>
+        <div class="card"><div class="section-title">🎁 Tajemniczy Prezent</div>
+          <p class="small">Doręczyciel w każdym Centrum Pokémon raz dziennie przynosi prezent. Czasem jest to wydarzenie: bilet otwierający drogę do mitycznego Pokémona albo mityczny Pokémon z prawdziwych dystrybucji.${PW.Gifts.eventsLeft() ? ' Najpóźniej co ' + PW.Gifts.EVENT_EVERY + '. prezent to wydarzenie (zostało: ' + PW.Gifts.eventsLeft() + ').' : ' Odebrałeś już wszystkie wydarzenia!'}</p>
+          <div class="row">${PW.Gifts.giftReady() ? '<button class="btn yellow lg" id="gift">🎁 Odbierz dzisiejszy prezent</button>' : '<span class="pill">Dzisiejszy prezent odebrany – kolejny jutro</span>'}</div></div>
         <div class="card"><div class="grid g2">${s.party.map(m => UI.monCard(m)).join('')}</div></div>`;
+      const gift = c.querySelector('#gift');
+      if (gift) gift.onclick = async () => { await UI.play(PW.Gifts.claim()); S.center.render(c); };
       c.querySelector('#heal').onclick = async () => {
         Game().healParty();
         Game().reg().center = loc.id;
@@ -180,7 +185,7 @@
         <div class="card"><div class="grid gauto-s">${shown.map(x => {
           const sp = Dex.species(x.sid);
           const seenX = s.dex.seen[x.sid], caughtX = s.dex.caught[x.sid];
-          return `<div class="mon-tile ${seenX ? '' : 'unknown'}" data-s="${x.sid}">${caughtX ? '<span class="caught-dot"></span>' : ''}${s.dex.shiny[x.sid] ? '<span class="shiny-star" style="position:absolute;left:6px;top:4px">★</span>' : ''}
+          return `<div class="mon-tile ${seenX ? '' : 'unknown'}" data-s="${x.sid}">${caughtX ? '<span class="caught-dot"></span>' : ''}${s.dex.shiny[x.sid] ? '<span class="shiny-star" style="position:absolute;left:6px;top:4px">★</span>' : ''}${s.research && s.research[x.sid] && PW.Research.status(x.sid).level >= 10 ? '<span class="tiny" style="position:absolute;right:6px;bottom:4px" title="Badania ukończone">🔬</span>' : ''}
             ${UI.monImg(Dex.defaultForm(x.sid))}<span class="num">#${String(x.n).padStart(3, '0')}</span><b>${seenX ? esc(sp.n) : '???'}</b></div>`;
         }).join('') || '<div class="empty">Brak wyników.</div>'}</div>
         ${list.length > shown.length ? `<div class="center" style="margin-top:12px"><button class="btn" id="more">Pokaż więcej (${list.length - shown.length})</button></div>` : ''}</div>`;
@@ -232,12 +237,21 @@
         ${p.b.map((v, i) => `<div class="stat-row"><span>${Dex.STAT_PL[i]}</span><span>${v}</span><div class="stat-bar"><div style="width:${Math.min(100, v / 180 * 100)}%;background:${['#ff5959', '#f5ac78', '#fae078', '#9db7f5', '#a7db8d', '#fa92b2'][i]}"></div></div><span></span></div>`).join('')}
         <h3 style="margin-top:12px">Ewolucja</h3>${S.team.evoChain({ pid, lvl: 1, moves: [], fr: 0, item: null, gender: 'M', iv: [0, 0, 0, 0, 0, 0], ev: [0, 0, 0, 0, 0, 0], nat: 0, moveUse: {} }).replace(/<div class="center" style="margin-top:12px">[\s\S]*?<\/div>/, '')}
         ${forms.length ? `<h3>Formy</h3><div class="row">${forms.map(f => `<div class="mon-tile" title="${esc(Dex.mon(f).n)}">${UI.monImg(f)}<span class="tiny">${esc(Dex.mon(f).n)}</span>${UI.types(Dex.mon(f).t, true)}</div>`).join('')}</div>` : ''}
+        ${S.dex.researchHtml(sid)}
         <h3 style="margin-top:12px">Gdzie występuje</h3>
-        ${where.length ? `<table class="tbl"><tr><th>Region</th><th>Lokacja</th><th>Sposób</th><th>Poz.</th></tr>${where.slice(0, 40).map(w => `<tr><td>${esc(w.r)}</td><td>${esc(w.l)}</td><td>${esc(PW.World.METHOD_PL[w.m] || methodPL[w.m] || w.m)}${w.conds.length ? ' <span class="tiny muted">(' + esc(w.conds.filter(c => !c.startsWith('radio-off')).map(c => c.replace('time-', '').replace('weather-', '').replace('season-', '')).join(', ')) + ')</span>' : ''}</td><td>${w.lo}${w.hi > w.lo ? '–' + w.hi : ''}</td></tr>`).join('')}</table>` : '<p class="muted small">Nie występuje dziko – zdobędziesz go przez ewolucję, jajo lub specjalne wydarzenie.</p>'}
+        ${where.length ? `<table class="tbl"><tr><th>Region</th><th>Lokacja</th><th>Sposób</th><th>Poz.</th></tr>${where.slice(0, 40).map(w => `<tr><td>${esc(w.r)}</td><td>${esc(w.l)}</td><td>${esc(PW.World.METHOD_PL[w.m] || methodPL[w.m] || w.m)}${w.conds.map(PW.Screens.location.condPL).filter(Boolean).length ? ' <span class="tiny muted">(' + esc(w.conds.map(PW.Screens.location.condPL).filter(Boolean).join(', ')) + ')</span>' : ''}</td><td>${w.lo}${w.hi > w.lo ? '–' + w.hi : ''}</td></tr>`).join('')}</table>` : '<p class="muted small">Nie występuje dziko – zdobędziesz go przez ewolucję, jajo lub specjalne wydarzenie.</p>'}
         <h3 style="margin-top:12px">Ruchy (poziom)</h3>
         <div class="row" style="gap:4px">${lv.map(([l, mid]) => `<span class="pill" title="${esc(Dex.move(mid).d || '')}">${l} ${esc(Dex.move(mid).n)}</span>`).join('')}</div>`;
       UI.modal({ title: esc(sp.n), body, wide: true });
     },
+  };
+
+  S.dex.researchHtml = sid => {
+    const st = PW.Research.status(sid);
+    return `<h3 style="margin-top:12px">🔬 Badania: poziom ${st.level}/10${st.perfect ? ' · <span class="gold">★ perfekcyjne</span>' : st.level >= 10 ? ' · <span class="gold">ukończone</span>' : ''}</h3>
+      <div class="progress"><div style="width:${Math.min(100, st.points)}%"></div></div>
+      <table class="tbl" style="margin-top:6px">${st.tasks.map(t => `<tr><td>${esc(t.label)}</td><td>${t.steps.map(x => `<span class="pill" style="${t.have >= x ? 'border-color:var(--gold);color:var(--gold)' : 'opacity:.55'}">${x}</span>`).join(' ')}</td><td class="num">${t.have}</td></tr>`).join('')}</table>
+      <p class="tiny muted">Każdy osiągnięty próg daje punkty, 100 punktów to poziom 10. Poziom 10 dodaje 1 losowanie shiny dla tego gatunku, a perfekcyjne badania (wszystkie progi) 3, jak w Legends: Arceus.</p>`;
   };
 
   // ====================================================================== QUESTS
@@ -282,7 +296,8 @@
             <div>Poziom trenera <b>${p.tlvl}</b> <span class="muted small">(${p.texp}/${Game().texpNeeded(p.tlvl)} pkt)</span></div>
             <div class="progress"><div style="width:${p.texp / Game().texpNeeded(p.tlvl) * 100}%"></div></div>
             <div>Pieniądze: <b>${U.money(p.money)}</b> · BP: <b>${p.bp}</b> · Monety: <b>${p.coins}</b></div>
-            <div>Pokédex: złapane <b>${Game().caughtCount()}</b> · widziane <b>${Game().seenCount()}</b> · shiny <b>${Object.keys(s.dex.shiny).length}</b></div>
+            <div>Pokédex: złapane <b>${Game().caughtCount()}</b> · widziane <b>${Game().seenCount()}</b> · shiny <b>${Object.keys(s.dex.shiny).length}</b> · ukończone badania <b>${PW.Research.completed()}</b></div>
+            <div>Numer ID trenera: <b>${String(p.tid).padStart(5, '0')}</b> <span class="muted small">(liczy się w loteriach w Goldenrod, Lilycove i Jubilife)</span></div>
             <div>Czas gry: ${hrs} h ${mins} min · Rozpoczęto: ${new Date(s.created).toLocaleDateString('pl-PL')}</div>
           </div></div></div>
         <div class="card"><div class="section-title">🎖️ Odznaki</div>${PW.World.regions().map(r => {

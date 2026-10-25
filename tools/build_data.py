@@ -133,7 +133,10 @@ def main():
                 "rusted-shield", "booster-energy", "ability-shield", "clear-amulet", "mirror-herb",
                 "punching-glove", "covert-cloak", "loaded-dice", "fairy-feather", "wellspring-mask",
                 "hearthflame-mask", "cornerstone-mask", "dynamax-candy", "max-mushrooms", "max-honey",
-                "armorite-ore", "dynite-ore", "wishing-piece", "galarica-twig", "honey"}
+                "armorite-ore", "dynite-ore", "wishing-piece", "galarica-twig", "honey",
+                # Event tickets handed out by Mystery Gift
+                "auroraticket", "mysticticket", "old-sea-map", "eon-ticket", "member-card", "oaks-letter",
+                "liberty-pass"}
     items = {}
     for r in rows("items"):
         cat = int(r["category_id"])
@@ -148,6 +151,9 @@ def main():
         desc = item_flavor.get(iid, (0, ""))[1] or item_prose.get(iid, "")
         items[iid] = {"k": ident.replace("--held", ""), "n": item_names.get(iid, ident), "c": cat,
                       "p": num(r["cost"], 0), "fp": num(r["fling_power"]), "d": desc}
+    # The GS Ball (Crystal's Celebi event) is missing from PokeAPI.
+    items["20001"] = {"k": "gs-ball", "n": "GS Ball", "c": 20, "p": 0, "fp": None,
+                      "d": "A mysterious Poké Ball. It is said to awaken something in the shrine of Ilex Forest."}
 
     # ---------------------------------------------------------------- moves
     move_names = {r["move_id"]: r["name"] for r in rows("move_names") if r["local_language_id"] == EN}

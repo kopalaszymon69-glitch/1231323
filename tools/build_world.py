@@ -211,6 +211,26 @@ def main():
             if note:
                 ev["note"] = note
             by_id[lid].setdefault("e", []).append(ev)
+        for (rid, lid, new, ticket, mons) in world_def.TICKETS:
+            if rid != r["id"]:
+                continue
+            if lid not in by_id:
+                kind, name = new
+                nl = convert_location(reg, {"id": lid, "kind": kind, "name": name, "req": POST, "fac": []}, r["enc"])
+                locs.append(nl)
+                by_id[lid] = nl
+            loc = by_id[lid]
+            if loc["r"] >= POST:
+                loc["ticket"] = ticket
+            evs = loc.setdefault("e", [])
+            for ident, lvl in mons:
+                pid = pid_of(ident)
+                found = [e for e in evs if e["t"] == "static" and e["p"] == pid]
+                if not found:
+                    found = [{"t": "static", "p": pid}]
+                    evs.extend(found)
+                for e in found:
+                    e.update({"l": lvl, "req": POST, "ticket": ticket})
         for l in locs:
             if "e" in l:
                 l["e"] = dedupe_events(l["e"])

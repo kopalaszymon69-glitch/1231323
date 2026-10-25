@@ -57,7 +57,7 @@
       const ever = [a, b].filter(m => m.item && Dex.item(m.item) && Dex.item(m.item).k === 'everstone');
       if (ever.length) nat = U.pick(ever).nat;
       const egg = Mon.createEgg(pid, { ivs, nat, ot: PW.Game.s.player.name, ball: Dex.speciesOf(mom.pid).eg.includes(DITTO_GROUP) ? dad.ball : mom.ball,
-        shinyRolls: 1 + (PW.Game.has('shiny-charm') ? 2 : 0) + (a.ot !== b.ot ? 5 : 0) });
+        shinyRolls: PW.Shiny.baseRolls(pid) + PW.Shiny.masudaRolls(a, b) });
       // Ability: hidden ability passes 60% from the mother.
       if (mom.abil === 2 && U.chance(0.6) && Dex.mon(pid).a[2]) egg.abil = 2;
       // Egg moves known by either parent.
@@ -146,6 +146,7 @@
       egg.fr = 120;
       egg.met = Object.assign({}, egg.met || {}, { hatched: Date.now(), l: s.loc, r: s.region });
       const isNew = PW.Game.markCaught(egg.pid, egg.shiny);
+      PW.Research.track('hatched', egg.pid);
       s.stats.hatched++;
       if (egg.shiny) s.stats.shinies++;
       PW.Game.log('Z jaja wykluł się ' + Mon.name(egg) + '!', 'good');

@@ -81,7 +81,7 @@
     if (Game().s.repel > 0 && lead && pick.level < lead.lvl && !o.force) {
       return scene({ title: 'Repel działa', text: 'Słabe dzikie Pokémony trzymają się z daleka.', img: { icon: '🧴' } });
     }
-    const mon = W().makeWild(pick.pid, pick.level, { swarm: pick.swarm, shiny: o.shiny, perfectIvs: o.perfectIvs, hiddenChance: o.hiddenChance });
+    const mon = W().makeWild(pick.pid, pick.level, { swarm: pick.swarm, shiny: o.shiny, perfectIvs: o.perfectIvs, hiddenChance: o.hiddenChance, rolls: o.rolls });
     return scene({
       battle: { kind: 'wild', foe: { team: [mon], ai: 'wild', totem: o.totem, raid: o.raid, noRun: o.noRun }, env: { method, locKind: loc.k }, tag: o.tag || 'wild', onEnd: o.onEnd },
     });
@@ -191,6 +191,10 @@
         Game().markSeen(pick.pid);
         return scene({ title: 'Wysyp Pokémonów!', text: 'W okolicy pojawiło się mnóstwo Pokémonów ' + monName(pick.pid) + '! Przez najbliższe wyprawy będą tu bardzo częste – a szansa na shiny jest większa.', img: { mon: pick.pid }, gain: true });
       },
+    },
+    {
+      id: 'tourist', w: 3, when: c => ['city', 'town'].includes(c.loc.k) && Game().s.party.filter(m => !m.egg).length >= 2,
+      run(c) { return PW.Shiny.touristScene(c.region, scene); },
     },
     {
       id: 'shiny', w: 0.15, when: c => c.walk,
@@ -548,6 +552,7 @@
       }
       if (has('rock-smash')) out.push({ id: 'rock-smash', label: 'Rozbijaj skały', icon: '🪨', ap: 1, ok: W().methodUnlocked(regionId, 'rock-smash'), why: 'Wymaga 1 odznaki.' });
       if (has('headbutt')) out.push({ id: 'headbutt', label: 'Potrząsaj drzewami', icon: '🌳', ap: 1 });
+      if (PW.Shiny.radarOK(loc)) out.push({ id: 'radar', label: 'Poké Radar', icon: '📡', ap: 1 });
       return out;
     },
 
@@ -563,10 +568,18 @@
       Game().addTexp(1);
       const hatched = PW.Breeding.hatchCheck();
       if (hatched) return hatched;
+      // Shiny chains last only while you keep doing the same thing in the same place.
+      const rod = !!method && method.endsWith('rod');
+      PW.Shiny.breakChains(method === 'radar' ? 'radar' : rod ? 'fish' : null);
+      if (method === 'radar') return PW.Shiny.radarScene(regionId, loc, scene, wildScene);
+      if (rod && (U.chance(0.2) || !W().table(regionId, loc, method).length)) {
+        const lost = PW.Shiny.fishMiss();
+        return scene({ title: 'Nic nie bierze...', text: 'Nic nie złapało przynęty.' + (lost > 1 ? ' Łańcuch wędkowania (' + lost + ') przerwany.' : ''), img: { icon: '🎣' } });
+      }
       if (method && method !== 'walk') {
-        const sc = wildScene(regionId, loc, method, { force: method !== 'surf' });
-        if (!sc.battle && method.endsWith('rod')) return scene({ title: 'Nic nie bierze...', text: 'Nic nie złapało przynęty.', img: { icon: '🎣' } });
-        if (sc.battle && method.endsWith('rod')) sc.prelude = 'Coś bierze! Zacinasz wędkę!';
+        const rolls = rod ? PW.Shiny.fishHook(regionId, loc) : 0;
+        const sc = wildScene(regionId, loc, method, { force: method !== 'surf', rolls });
+        if (sc.battle && rod) sc.prelude = 'Coś bierze! Zacinasz wędkę!' + (PW.Shiny.state().fish.n > 1 ? ' (łańcuch wędkowania: ' + PW.Shiny.state().fish.n + ')' : '');
         if (sc.battle && method === 'headbutt') sc.prelude = 'Drzewo się trzęsie i spada z niego Pokémon!';
         if (sc.battle && method === 'rock-smash') sc.prelude = 'Skała pęka – wyskakuje z niej Pokémon!';
         return sc;
@@ -624,7 +637,11 @@
         const req = e.req !== undefined ? e.req : (sp.myth ? 99 : sp.leg ? Math.max(loc.r, 0) : loc.r);
         if (req >= 99 && !Game().isChampion(regionId)) continue;
         if (req < 99 && Game().badges(regionId) < req && !Game().isChampion(regionId)) continue;
-        if (sp.myth) {
+        if (e.ticket && !Game().has(e.ticket)) {
+          out.push({ key, icon: '🎫', label: '??? (wydarzenie)', desc: 'Coś tu czeka, ale potrzebujesz: ' + Dex.item(I(e.ticket)).n + ' (z Tajemniczego Prezentu w Centrum Pokémon).', locked: true });
+          continue;
+        }
+        if (sp.myth && !e.ticket) {
           const dex = Dex.data.core.dex[regDef.dex] || [];
           if (Game().caughtCount(dex) < Math.floor(dex.length * 0.6)) {
             out.push({ key, icon: '🎫', label: '??? (Tajemniczy Bilet)', desc: 'Profesor mówi, że to miejsce otworzy się dla trenera, który zarejestruje 60% regionalnego Pokédexu.', locked: true });

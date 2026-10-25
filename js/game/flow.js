@@ -75,6 +75,7 @@
         if (m.hp > Mon.maxHp(m)) m.hp = Mon.maxHp(m);
       }
       for (const x of b.sides[0].team) delete x._basePid;
+      PW.Research.afterBattle(b);
       if (res === 'win') {
         s.stats.wins++;
         if (spec.kind === 'trainer') {
@@ -105,6 +106,7 @@
         }
         const isNew = !s.dex.caught[Dex.mon(m.pid).s];
         const where = Game().addMon(m);
+        PW.Research.track('caught', m.pid);
         s.stats.caught++;
         if (m.shiny) s.stats.shinies++;
         PW.Quests.track('catch', { pid: m.pid });
@@ -157,6 +159,7 @@
     // Executes an evolution; returns the event (UI shows animation and new move prompts).
     doEvolve(m, row) {
       const before = Mon.name(m);
+      PW.Research.track('evolved', m.pid);
       const ev = Mon.evolve(m, row, Game());
       Game().markCaught(m.pid, m.shiny);
       Game().s.stats.evolved++;
@@ -446,6 +449,7 @@
       const s = Game().s;
       const msgs = [];
       if (s.league && (s.league.region !== regionId || locId !== W().region(regionId).league)) { s.league = null; msgs.push('Opuszczasz Ligę – wyzwanie trzeba będzie zacząć od nowa.'); }
+      if (regionId !== s.region || locId !== s.loc) PW.Shiny.breakChains();
       if (regionId !== s.region) {
         s.region = regionId;
         msgs.push(...PW.Story.onArrive(regionId));

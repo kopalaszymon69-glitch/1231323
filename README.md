@@ -34,6 +34,14 @@ Grafiki Pokémonów, przedmiotów i trenerów są pobierane z PokeAPI Sprites i 
   - rajdy Max Raid i Tera Raid oraz Ultra Tunele,
   - wysypy Pokémonów, jaja, skamieliny, quizy, krzaki jagód i TM-y,
   - Bug-Catching Contest, monety Gimmighoula i wiele innych.
+- **Polowanie na shiny**:
+  - łańcuchy Poké Radaru (szansa jak w Diamond/Pearl/Platinum, do 1/200 przy łańcuchu 40),
+  - łańcuchy wędkowania (+2 losowania za każde zacięcie z rzędu, do 20, jak w X/Y),
+  - metoda Masudy z Pokémonami z gier w innych językach (turyści w miastach),
+  - Shiny Charm i wysypy.
+- **Badania Pokédexu** jak w Legends: Arceus: zadania dla każdego gatunku (złap, pokonaj, zobacz ruch, ewoluuj, wykluj). Poziom 10 i perfekcyjne badania zwiększają szansę na shiny tego gatunku.
+- **Tajemniczy Prezent** raz dziennie w Centrum Pokémon. Daje przedmioty, bilety z wydarzeń (AuroraTicket, MysticTicket, Old Sea Map, Eon Ticket, Member Card, Oak's Letter, Azure Flute, Liberty Pass, GS Ball) otwierające drogę do mitycznych i legendarnych Pokémonów oraz mityczne Pokémony z prawdziwych dystrybucji.
+- **Loterie numerów ID** w Goldenrod (Radio Tower), Lilycove (Dom Towarowy) i Jubilife (TV) z nagrodami z oryginalnych gier.
 - **Hodowla, Pokédex i usługi**:
   - Hodowla Pokémonów z dziedziczeniem IV, natury, zdolności i ruchów z jaja,
   - PC na 16 pudeł,

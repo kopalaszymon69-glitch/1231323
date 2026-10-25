@@ -20,7 +20,8 @@
     'silph-scope', 'poke-flute', 'devon-scope', 'red-orb', 'blue-orb', 'jade-orb', 'dna-splicers', 'reveal-glass',
     'prison-bottle', 'zygarde-cube', 'n-solarizer', 'n-lunarizer', 'reins-of-unity', 'rotom-catalog', 'gracidea',
     'secret-key', 'ss-ticket', 'card-key', 'lift-key', 'tidal-bell', 'clear-bell', 'rainbow-wing', 'silver-wing',
-    'magma-stone', 'meteorite', 'azure-flute', 'linking-cord'];
+    'magma-stone', 'meteorite', 'azure-flute', 'linking-cord',
+    'auroraticket', 'mysticticket', 'old-sea-map', 'eon-ticket', 'member-card', 'oaks-letter', 'liberty-pass', 'gs-ball'];
 
   const HEAL = {
     potion: 20, 'super-potion': 60, 'hyper-potion': 120, 'max-potion': 9999, 'full-restore': 9999, 'fresh-water': 30,
@@ -73,6 +74,15 @@
     'thunder-stone': 'Kamień ewolucji niektórych Pokémonów.', 'leaf-stone': 'Kamień ewolucji niektórych Pokémonów.',
     'moon-stone': 'Kamień ewolucji niektórych Pokémonów.', 'sun-stone': 'Kamień ewolucji niektórych Pokémonów.',
     'linking-cord': 'Wywołuje ewolucję, która normalnie wymaga wymiany (jak w Legends: Arceus).',
+    auroraticket: 'Bilet z wydarzenia: rejs na Birth Island (Kanto), gdzie czeka Deoxys. Działa po zostaniu Mistrzem Kanto.',
+    mysticticket: 'Bilet z wydarzenia: rejs na Navel Rock (Kanto), gdzie czekają Lugia i Ho-Oh. Działa po zostaniu Mistrzem Kanto.',
+    'old-sea-map': 'Stara mapa morska z wydarzenia: prowadzi na Faraway Island (Hoenn), gdzie żyje Mew. Działa po zostaniu Mistrzem Hoenn.',
+    'eon-ticket': 'Bilet z wydarzenia: rejs na Southern Island (Hoenn) do Latias i Latiosa. Działa po zostaniu Mistrzem Hoenn.',
+    'member-card': 'Karta członkowska z wydarzenia: otwiera drogę na Newmoon Island (Sinnoh), gdzie śpi Darkrai. Działa po zostaniu Mistrzem Sinnoh.',
+    'oaks-letter': 'List od Profesora Oaka z wydarzenia: otwiera Seabreak Path do Flower Paradise (Sinnoh) i Shaymina. Działa po zostaniu Mistrzem Sinnoh.',
+    'liberty-pass': 'Przepustka z wydarzenia: rejs do Liberty Garden (Unova), gdzie ukrywa się Victini. Działa po zostaniu Mistrzem Unovy.',
+    'azure-flute': 'Flet z wydarzenia: jego dźwięk otwiera schody do Hall of Origin (Sinnoh), gdzie czeka Arceus. Działa po zostaniu Mistrzem Sinnoh.',
+    'gs-ball': 'Tajemnicza kula z wydarzenia: zanieś ją do kapliczki w Ilex Forest (Johto), by spotkać Celebiego. Działa po zostaniu Mistrzem Johto.',
     'exp-share': 'Cała drużyna otrzymuje doświadczenie z walk.', 'lucky-egg': 'Trzymający dostaje 50% więcej doświadczenia.',
     leftovers: 'Co turę przywraca 1/16 HP.', 'oran-berry': 'Przywraca 10 HP przy połowie HP.', 'sitrus-berry': 'Przywraca 1/4 HP przy połowie HP.',
     'lum-berry': 'Leczy każdą dolegliwość statusową.', 'old-rod': 'Wędka – łów Pokémony w wodzie.', 'good-rod': 'Lepsza wędka.', 'super-rod': 'Najlepsza wędka.',

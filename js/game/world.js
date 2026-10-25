@@ -100,6 +100,7 @@
 
     accessible(regionId, loc) {
       const r = PW.Game.reg(regionId);
+      if (loc.ticket && !PW.Game.has(loc.ticket)) return false; // event islands need their Mystery Gift ticket
       if (loc.r >= POST) return r.champion;
       return r.badges.length >= loc.r || r.champion;
     },
@@ -312,8 +313,7 @@
     makeWild(pid, level, o) {
       o = o || {};
       const s = PW.Game.s;
-      let rolls = 1;
-      if (PW.Game.has('shiny-charm')) rolls += 2;
+      let rolls = PW.Shiny.baseRolls(pid); // full odds, Shiny Charm and Pokédex research
       if (o.swarm) rolls += 2; // Mass Outbreak bonus
       if (o.rolls) rolls += o.rolls;
       const p = Dex.mon(pid);

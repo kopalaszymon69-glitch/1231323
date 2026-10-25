@@ -102,4 +102,26 @@ for (const reg of World.regions()) {
   for (const t of reg.extra || []) { try { Game.healParty(); playScene(Flow.extraTrainerScene(reg.id, t), 'extra'); } catch (e) { fail('extra ' + t.name, e); } }
   console.log(reg.id, 'done; badges', r.badges.length, 'champion', r.champion, 'caught', Game.s.stats.caught, 'battles', battles);
 }
+// Mystery Gift, event tickets, lotteries, Poké Radar chains, chain fishing and Pokédex research
+try {
+  for (let d = 0; d < 30; d++) { PW.Gifts.state().last = ''; playScene(PW.Gifts.claim(), 'gift'); }
+  for (const [k] of PW.Gifts.TICKETS) if (!Game.has(k)) Game.addItem(Dex.itemByKey(k), 1, true);
+  for (const reg of World.regions()) for (const loc of reg.locs.filter(l => l.ticket || (l.e || []).some(e => e.ticket))) {
+    Flow.travel(reg.id, loc.id);
+    for (const sp of Explore.special(reg.id, loc)) if (!sp.locked && sp.run) { Game.healParty(); playScene(sp.run(), 'ticket ' + loc.id); }
+  }
+  for (const id of Object.keys(PW.Gifts.LOTTERIES)) {
+    const reg = World.regions().find(r => r.locs.some(l => l.id === id));
+    Game.s.lottery = null;
+    playScene(PW.Gifts.lotteryScene(reg.id, World.loc(reg.id, id)), 'lottery');
+  }
+  Game.addItem(Dex.itemByKey('poke-radar'), 1, true);
+  Flow.travel('sinnoh', 'sinnoh-route-201');
+  for (let i = 0; i < 80; i++) { Game.healParty(); playScene(Explore.run('sinnoh', World.here(), 'radar'), 'radar'); }
+  Game.addItem(Dex.itemByKey('super-rod'), 1, true);
+  Flow.travel('kalos', 'kalos-route-3');
+  for (let i = 0; i < 40; i++) { Game.healParty(); playScene(Explore.run('kalos', World.here(), 'super-rod'), 'fish'); }
+  for (let i = 0; i < 6; i++) playScene(PW.Shiny.touristScene('kanto', o => o), 'tourist');
+  console.log('features: gifts', Object.keys(PW.Gifts.state().got).length, 'radar best', Game.s.hunt.best, 'research done', PW.Research.completed());
+} catch (e) { fail('features', e); }
 console.log('battles', battles, 'scenes', scenes, 'errors', errors);

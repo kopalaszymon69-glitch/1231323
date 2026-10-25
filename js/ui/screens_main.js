@@ -151,6 +151,7 @@
             ${special.map((x, i) => `<button class="action special ${x.locked ? 'locked' : ''}" data-sp="${i}"><span class="ic">${x.icon}</span><span><div class="t">${esc(x.label)}</div><div class="d">${esc(x.desc || '')}</div></span></button>`).join('')}
           </div>
         </div>
+        ${S.location.shinyHtml(s.region, loc)}
         <div class="grid g2">
           <div class="card"><div class="section-title">🐾 Pokémony w okolicy <button class="btn sm right" id="show-all">Wszystkie</button></div><div id="res"></div></div>
           <div class="card"><div class="section-title">📰 Dziennik</div><div class="feed">${s.log.slice(0, 20).map(l => `<div class="it ${l.kind}"><span class="time">${new Date(l.t).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</span>${esc(l.text)}</div>`).join('') || '<div class="muted">Pusto.</div>'}</div></div>
@@ -174,6 +175,20 @@
       const lc = c.querySelector('#league-cont');
       if (lc) lc.onclick = () => UI.play(PW.Flow.leagueScene(s.region));
     },
+    // Shiny odds here and the hunting methods that work in this place.
+    shinyHtml(regionId, loc) {
+      const lines = PW.Shiny.summary(regionId, loc);
+      const tips = [];
+      const hasWalk = !!(loc.w && loc.w.walk && loc.w.walk.length);
+      if (PW.Shiny.radarOK(loc)) tips.push('📡 Poké Radar: walcz z tym samym gatunkiem raz za razem (łańcuch do 40)');
+      else if (hasWalk && !PW.Game.has('poke-radar')) tips.push('📡 Poké Radar dostaniesz po zostaniu Mistrzem Sinnoh albo Kalos');
+      if (['old-rod', 'good-rod', 'super-rod'].some(r => loc.w && loc.w[r])) tips.push('🎣 Łowienie bez przerwy: każde zacięcie z rzędu to większa szansa (do 20)');
+      tips.push('🥚 Metoda Masudy: hoduj z Pokémonem z gry w innym języku (turyści w miastach)');
+      tips.push('🔬 Badania Pokédexu na poziomie 10 też zwiększają szansę');
+      return `<div class="card"><div class="section-title">✨ Polowanie na shiny</div>
+        <div class="row" style="gap:6px">${lines.map(l => `<span class="pill">${esc(l)}</span>`).join('')}</div>
+        <div class="tiny muted" style="margin-top:6px">${tips.map(esc).join(' · ')}</div></div>`;
+    },
     // Previous / next accessible locations in story order for quick travel.
     nearbyHtml(reg, loc) {
       const list = reg.locs.filter(l => PW.World.accessible(reg.id, l));
@@ -185,13 +200,22 @@
         (center && center !== loc.id ? btn({ id: center }, '🏥 ' + esc(PW.World.locName(reg.id, center))) : '') +
         `<button class="btn sm right" data-goto="map">🗺️ Mapa regionu</button>`;
     },
+    // Encounter condition in words ('' for ones not worth showing).
+    condPL(c) {
+      return ({ 'time-morning': 'rano', 'time-day': 'w dzień', 'time-night': 'w nocy', 'swarm-yes': 'wysyp', 'radar-on': 'Poké Radar', postgame: 'po Lidze',
+        'radio-hoenn': 'radio: Hoenn Sound', 'radio-sinnoh': 'radio: Sinnoh Sound' })[c] ||
+        (c.startsWith('season-') ? ({ 'season-spring': 'wiosna', 'season-summer': 'lato', 'season-autumn': 'jesień', 'season-winter': 'zima' })[c]
+          : c.startsWith('weather-') ? PW.World.weatherInfo(c).label.toLowerCase() : c.startsWith('slot2-') ? (c === 'slot2-none' ? '' : 'GBA: ' + c.slice(6))
+            : c.startsWith('weekday-') ? ({ monday: 'poniedziałek', tuesday: 'wtorek', wednesday: 'środa', thursday: 'czwartek', friday: 'piątek', saturday: 'sobota', sunday: 'niedziela' })[c.slice(8)] || ''
+              : '');
+    },
     drawResidents(box, all) {
       const s = PW.Game.s;
       const loc = PW.World.here();
       const list = PW.World.residents(s.region, loc, all);
       if (!list.length) { box.innerHTML = '<div class="muted small">Brak dzikich Pokémonów w tym miejscu. Możesz tu spotkać ludzi i wydarzenia.</div>'; return; }
       const total = list.reduce((a, x) => a + x.w, 0);
-      const condPL = c => ({ 'time-morning': 'rano', 'time-day': 'w dzień', 'time-night': 'w nocy', 'swarm-yes': 'wysyp', 'radar-on': 'Poké Radar', postgame: 'po Lidze' })[c] || (c.startsWith('season-') ? ({ 'season-spring': 'wiosna', 'season-summer': 'lato', 'season-autumn': 'jesień', 'season-winter': 'zima' })[c] : c.startsWith('weather-') ? PW.World.weatherInfo(c).label.toLowerCase() : c.startsWith('slot2-') ? 'GBA: ' + c.slice(6) : c.startsWith('radio-') ? (c === 'radio-off' ? '' : 'radio ' + c.slice(6)) : '');
+      const condPL = S.location.condPL;
       box.innerHTML = `<div class="grid gauto-s">${list.map(x => {
         const sp = Dex.speciesOf(x.pid);
         const seen = s.dex.seen[sp.k ? Dex.mon(x.pid).s : 0];
@@ -261,7 +285,7 @@
           const gym = reg.gyms.some(g => g.loc === l.id);
           return `<div class="loc-item ${ok ? '' : 'locked'} ${here ? 'here' : ''}" data-l="${l.id}">
             <span class="ic">${PW.World.KIND_ICON[l.k] || '📍'}</span>
-            <span><div class="n">${esc(l.n)}</div><div class="m">${esc(PW.World.KIND_PL[l.k] || '')}${lt ? ' · ' + lt : ''}${r.visited[l.id] ? '' : ' · nieodwiedzone'}</div></span>
+            <span><div class="n">${esc(l.n)}</div><div class="m">${esc(PW.World.KIND_PL[l.k] || '')}${lt ? ' · ' + lt : ''}${l.ticket ? ' · 🎫 ' + esc(Dex.item(Dex.itemByKey(l.ticket)).n) : ''}${r.visited[l.id] ? '' : ' · nieodwiedzone'}</div></span>
             <span class="tags">${l.f.includes('pc') ? '🏥' : ''}${l.f.includes('mart') || l.f.includes('dept') ? '🛒' : ''}${gym ? '🏅' : ''}${l.f.includes('league') ? '🏆' : ''}${(l.e || []).some(e => e.t === 'static' && (Dex.speciesOf(e.p).leg || Dex.speciesOf(e.p).myth)) ? '⭐' : ''}</span></div>`;
         }).join('')}</div></div>`).join('')}`;
       for (const t of c.querySelectorAll('[data-r]')) t.onclick = () => S.map.render(c, { region: t.dataset.r });
@@ -274,6 +298,7 @@
       if (flyBtn) flyBtn.onclick = () => go(dest);
       for (const it of c.querySelectorAll('[data-l]')) it.onclick = () => {
         const l = reg._loc[it.dataset.l];
+        if (l.ticket && !PW.Game.has(l.ticket)) return UI.toast('Potrzebujesz: ' + Dex.item(Dex.itemByKey(l.ticket)).n + ' (Tajemniczy Prezent w Centrum Pokémon).', 'bad');
         if (!PW.World.accessible(regionId, l)) return UI.toast(l.r >= 99 ? 'Dostępne po zostaniu Mistrzem regionu.' : 'Potrzebujesz ' + l.r + ' ' + U.plural(l.r, ['odznaki', 'odznak', 'odznak']) + ' w tym regionie.', 'bad');
         go(l.id);
       };

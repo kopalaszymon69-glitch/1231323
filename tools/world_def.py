@@ -1047,3 +1047,20 @@ EXTRA_STATICS = [
     ("paldea", "casseroyalake", "dondozo", 56, 7, "Tytan Fałszywego Smoka (z Tatsugiri)."),
     ("johto", "bell-tower", "suicune", 40, 8, "Suicune czeka na szczycie Wieży Dzwonów (wersja Crystal)."),
 ]
+
+
+# Event tickets from Mystery Gift. The island or shrine opens with the item after the region's title,
+# as in the games the tickets were distributed for (FRLG/Emerald, Platinum, Black/White, Crystal).
+# (region, location, kind and name for a new location or None, ticket item, [(pokemon, level)])
+TICKETS = [
+    ("kanto", "birth-island", ("island", "Birth Island"), "auroraticket", [("deoxys", 30)]),
+    ("kanto", "navel-rock", ("island", "Navel Rock"), "mysticticket", [("lugia", 70), ("ho-oh", 70)]),
+    ("hoenn", "faraway-island", None, "old-sea-map", [("mew", 30)]),
+    ("hoenn", "southern-island", None, "eon-ticket", [("latias", 50), ("latios", 50)]),
+    ("sinnoh", "newmoon-island", None, "member-card", [("darkrai", 50)]),
+    ("sinnoh", "flower-paradise", None, "oaks-letter", [("shaymin", 30)]),
+    ("sinnoh", "sinnoh-hall-of-origin-1", None, "azure-flute", [("arceus", 80)]),
+    ("unova", "liberty-garden", ("island", "Liberty Garden"), "liberty-pass", [("victini", 15)]),
+    # Ilex Forest itself stays open; only Celebi at the shrine needs the GS Ball.
+    ("johto", "ilex-forest", None, "gs-ball", [("celebi", 30)]),
+]

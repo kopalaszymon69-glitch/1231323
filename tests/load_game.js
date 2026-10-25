@@ -4,5 +4,5 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 require('./load');
 for (const f of ['js/game/state.js', 'js/game/world.js', 'js/game/quiz.js', 'js/game/breeding.js', 'js/game/quests.js',
-  'js/game/story.js', 'js/game/events.js', 'js/game/flow.js']) require(path.join(root, f));
+  'js/game/research.js', 'js/game/shiny.js', 'js/game/gifts.js', 'js/game/story.js', 'js/game/events.js', 'js/game/flow.js']) require(path.join(root, f));
 module.exports = globalThis.PW;
