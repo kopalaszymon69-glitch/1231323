@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PokéWędrówka</title>
+  <meta name="description" content="Gra Pokémon dla jednego gracza w przeglądarce: 9 regionów, 1025 Pokémonów, prawdziwe dane z gier.">
+  <meta name="theme-color" content="#0f1424">
+  <link rel="icon" href="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app"><div class="empty" style="padding-top:30vh">Ładowanie świata Pokémon…</div></div>
+
+  <!-- Game data generated from PokeAPI (tools/build_data.py, tools/build_world.py) -->
+  <script src="js/data/core.js"></script>
+  <script src="js/data/abilities.js"></script>
+  <script src="js/data/items.js"></script>
+  <script src="js/data/moves.js"></script>
+  <script src="js/data/species.js"></script>
+  <script src="js/data/pokemon.js"></script>
+  <script src="js/data/learnsets.js"></script>
+  <script src="js/data/dextext.js"></script>
+  <script src="js/data/world.js"></script>
+  <!-- Engine -->
+  <script src="js/core/util.js"></script>
+  <script src="js/core/dex.js"></script>
+  <script src="js/core/pokemon.js"></script>
+  <script src="js/core/battle_data.js"></script>
+  <script src="js/core/battle.js"></script>
+  <script src="js/core/ai.js"></script>
+  <script src="js/core/catch.js"></script>
+  <!-- Game -->
+  <script src="js/game/items.js"></script>
+  <script src="js/game/state.js"></script>
+  <script src="js/game/world.js"></script>
+  <script src="js/game/quiz.js"></script>
+  <script src="js/game/breeding.js"></script>
+  <script src="js/game/quests.js"></script>
+  <script src="js/game/story.js"></script>
+  <script src="js/game/events.js"></script>
+  <script src="js/game/flow.js"></script>
+  <!-- UI -->
+  <script src="js/ui/ui.js"></script>
+  <script src="js/ui/battle_ui.js"></script>
+  <script src="js/ui/screens_main.js"></script>
+  <script src="js/ui/screens_mons.js"></script>
+  <script src="js/ui/screens_misc.js"></script>
+  <script>window.addEventListener('DOMContentLoaded', () => PW.UI.init());</script>
+</body>
+</html>
