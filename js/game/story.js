@@ -9,12 +9,18 @@
   function give(key, n) { const id = I(key); if (id) Game().addItem(id, n || 1, true); return id; }
 
   const Story = PW.Story = {
-    // Region arrival: version choice for Galar, gimmick items.
+    // Region arrival: welcome, version choice for Galar, gimmick items, trainer scaling.
     onArrive(regionId) {
       const r = Game().reg(regionId);
+      const reg = PW.World.region(regionId);
       const out = [];
       if (!r.flags.arrived) {
         r.flags.arrived = 1;
+        const g = reg.gyms[0];
+        const elsewhere = Object.values(Game().s.regions).some(x => x !== r && x.flags.arrived);
+        if (elsewhere) out.push('Witaj w regionie ' + reg.name + '! ' + (reg.trials ? 'Pieczęcie Prób' : 'Odznaki') + ' zdobywasz tu od nowa – pierwsza ' +
+          (g.trial ? 'Próba' : 'sala') + ': ' + g.leader + ' (' + PW.World.locName(regionId, g.loc) + ').' +
+          (r.starter ? '' : ' ' + reg.prof[0] + ' w ' + PW.World.locName(regionId, reg.lab) + ' ma dla ciebie Pokémona startowego.'));
         if (regionId === 'galar') {
           r.flags.version = Math.random() < 0.5 ? 'sword' : 'shield';
           give('dynamax-band');
@@ -22,16 +28,15 @@
         }
         if (regionId === 'paldea') { give('tera-orb'); out.push('W Akademii otrzymujesz Tera Orb – raz na walkę możesz Terastalizować Pokémona (ładuje się w Centrum Pokémon).'); }
         if (regionId === 'alola') { give('z-ring'); out.push('Kahuna Hala wręcza ci Z-Ring wykonany z kamienia Sparkling Stone. Z kryształem Z twój Pokémon wykona Z-Move!'); }
-        // Trainers in later regions match the player's strength (like rematches).
-        if (Game().anyChampion() && r.scale === null) {
-          const reg = PW.World.region(regionId);
-          const lo = Math.max(...reg.gyms[0].team.map(t => t.l));
-          const hi = Math.max(...reg.champ.team.map(t => t.l));
-          const P = Math.min(100, Game().avgTopLevel(3));
-          if (P - 10 > lo) r.scale = { from: [lo, hi], to: [Math.round(P - 10), Math.min(100, Math.max(hi, Math.round(P + 12)))] };
-          else r.scale = 0;
-          if (r.scale) out.push('Trenerzy w regionie ' + reg.name + ' słyszeli o twoich sukcesach – będą walczyć na wyższym poziomie (' + r.scale.to[0] + '–' + r.scale.to[1] + ').');
-        }
+      }
+      // After a first title, trainers in a region not yet started match the player's strength (like rematches).
+      if (Game().anyChampion() && r.scale === null && !r.badges.length && !r.champion) {
+        const lo = Math.max(...reg.gyms[0].team.map(t => t.l));
+        const hi = Math.max(...reg.champ.team.map(t => t.l));
+        const P = Math.min(100, Game().avgTopLevel(3));
+        if (P - 10 > lo) r.scale = { from: [lo, hi], to: [Math.round(P - 10), Math.min(100, Math.max(hi, Math.round(P + 12)))] };
+        else r.scale = 0;
+        if (r.scale) out.push('Trenerzy w regionie ' + reg.name + ' słyszeli o twoich sukcesach – będą walczyć na wyższym poziomie (' + r.scale.to[0] + '–' + r.scale.to[1] + ').');
       }
       return out;
     },

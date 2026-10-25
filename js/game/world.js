@@ -79,11 +79,15 @@
   const NAMES_F = ['Janice', 'Sally', 'Robin', 'Dana', 'Zoe', 'Emma', 'Mia', 'Lily', 'Ivy', 'Ruby', 'Nora', 'Ola', 'Zosia', 'Kasia',
     'Ania', 'Julia', 'Gina', 'Beth', 'Lola', 'Erin', 'Tara', 'Maya', 'Ella', 'Cora', 'Rita', 'Hana', 'Vera', 'Lena', 'Iza', 'Nina'];
   const FEMALE_CLASSES = ['lass', 'picnicker', 'beauty', 'hexmaniac', 'channeler', 'skier'];
+  // Classes the games have in both genders, with the female trainer sprite.
+  const FEMALE_VARIANT = { acetrainer: 'acetrainerf', swimmer: 'swimmerf', pokefan: 'pokefanf', breeder: 'pokemonbreederf',
+    ranger: 'pokemonrangerf', scientist: 'scientistf', veteran: 'veteranf', backpacker: 'backpackerf', psychic: 'psychicf' };
+  const WATER_CLASSES = ['fisherman', 'swimmer', 'sailor'];
 
   let byRegion = null;
 
   const World = PW.World = {
-    POST, KIND_PL, KIND_ICON, METHOD_PL, CLASSES,
+    POST, KIND_PL, KIND_ICON, METHOD_PL, CLASSES, FEMALE_VARIANT,
     regions() { return Dex.data.world; },
     region(id) {
       if (!byRegion) { byRegion = {}; for (const r of Dex.data.world) { byRegion[r.id] = r; r._loc = {}; for (const l of r.locs) r._loc[l.id] = l; } }
@@ -260,15 +264,41 @@
       }
       return Object.values(res).sort((a, b) => b.w - a.w);
     },
-    levelRange(loc) {
-      let lo = 999, hi = 0;
+    // Level ranges shown to the player, land and water apart: an early town's Super Rod table
+    // should not make the whole place look like Lv40.
+    levelText(loc) {
+      if (loc.lv) return 'Lv ' + loc.lv[0] + '–' + loc.lv[1];
+      const land = [999, 0], water = [999, 0];
       for (const m of Object.keys(loc.w || {})) for (const e of loc.w[m]) {
-        const conds = e[4] || [];
-        if (conds.includes('postgame')) continue;
-        lo = Math.min(lo, e[2]); hi = Math.max(hi, e[3]);
+        if ((e[4] || []).includes('postgame') || m === 'raid') continue;
+        const r = ['surf', 'old-rod', 'good-rod', 'super-rod'].includes(m) ? water : land;
+        r[0] = Math.min(r[0], e[2]); r[1] = Math.max(r[1], e[3]);
       }
-      if (loc.lv) { lo = loc.lv[0]; hi = loc.lv[1]; }
-      return hi ? [lo, hi] : null;
+      const parts = [];
+      if (land[1]) parts.push('Lv ' + land[0] + '–' + land[1]);
+      if (water[1]) parts.push('🎣 Lv ' + water[0] + '–' + water[1]);
+      return parts.join(' · ');
+    },
+    // Highest land encounter level (grass, caves), without Surf, rods or postgame rows.
+    landLevel(loc) {
+      if (loc.lv) return loc.lv[1];
+      let hi = 0;
+      for (const e of (loc.w && loc.w.walk) || []) if (!(e[4] || []).includes('postgame')) hi = Math.max(hi, e[3]);
+      return hi;
+    },
+    // Level of the trainers met at a location. Follows its land encounters, kept between the ace of
+    // the last gym its badge requirement implies and just under the next one, so an early route
+    // never gets Lv40 trainers from its Super Rod table.
+    trainerLevel(regionId, loc) {
+      const reg = World.region(regionId);
+      const ace = team => Math.max(...team.map(t => t.l));
+      const land = World.landLevel(loc);
+      const r = loc.r || 0;
+      const n = reg.gyms.length;
+      if (r >= 99) return Math.max(land, ace(reg.champ.team) - 6);
+      const lo = r > 0 ? ace(reg.gyms[Math.min(r, n) - 1].team) - 4 : 5;
+      const hi = r < n ? ace(reg.gyms[r].team) - 2 : ace(reg.e4[0].team) - 4;
+      return U.clamp(land || lo, Math.min(lo, hi), hi);
     },
 
     pickWild(regionId, loc, method) {
@@ -415,45 +445,52 @@
       });
     },
 
-    trainerName(cls) {
-      return U.pick(FEMALE_CLASSES.includes(cls) ? NAMES_F : (['camper', 'hiker', 'blackbelt', 'gentleman', 'sailor', 'worker', 'fisherman', 'kindler', 'biker', 'guitarist', 'juggler'].includes(cls) ? NAMES_M : NAMES_M.concat(NAMES_F)));
+    // Names follow the class sprite's gender.
+    trainerName(cls, female) {
+      return U.pick(female === undefined ? (FEMALE_CLASSES.includes(cls) ? NAMES_F : NAMES_M) : female ? NAMES_F : NAMES_M);
     },
 
     // Random route trainer appropriate for the location.
     randomTrainer(regionId, loc) {
-      const badges = PW.Game.badges(regionId);
+      const reg = World.region(regionId);
+      // How far into the region the location is, in badges; trainers there match that stage.
+      const stage = Math.min(loc.r || 0, reg.gyms.length);
       let pool = (KIND_CLASSES[loc.k] || KIND_CLASSES.route).slice();
-      if (badges >= 3) pool.push('blackbelt', 'psychic', 'beauty', 'gentleman');
-      if (badges >= 5) pool.push('acetrainer', 'veteran', 'breeder', 'ranger');
+      if (stage >= 3) pool.push('blackbelt', 'psychic', 'beauty', 'gentleman');
+      if (stage >= 5) pool.push('acetrainer', 'veteran', 'breeder', 'ranger');
       const cls = U.pick(pool);
       const c = CLASSES[cls];
-      const name = World.trainerName(cls);
-      // Species pool from this location
-      const methods = ['walk', 'surf', 'super-rod', 'good-rod', 'old-rod'];
-      let species = [];
+      const female = FEMALE_CLASSES.includes(cls) || (!!FEMALE_VARIANT[cls] && U.chance(0.5));
+      const sprite = female && FEMALE_VARIANT[cls] ? FEMALE_VARIANT[cls] : c[1];
+      const name = World.trainerName(cls, female);
+      // Species: the location's land Pokémon (water classes also fish and surf), narrowed to the
+      // class's types; when the location has too few of those, early regional Pokédex species of them.
       const ctx = World.context(regionId, loc);
-      for (const m of methods) for (const e of World.table(regionId, loc, m, ctx)) species.push(e);
-      let base = 0;
-      for (const e of species) base = Math.max(base, e.hi);
-      if (!species.length) {
-        const reg = World.region(regionId);
-        const dex = Dex.data.core.dex[reg.dex] || [];
-        species = dex.slice(0, 60 + badges * 20).map(sid => ({ pid: Dex.defaultForm(sid), hi: 5 }));
-        base = World.progressLevel(regionId);
-      }
+      const from = methods => [].concat(...methods.map(m => World.table(regionId, loc, m, ctx)));
+      const water = from(['surf', 'super-rod', 'good-rod', 'old-rod']);
+      let species = WATER_CLASSES.includes(cls) ? water.concat(from(['walk'])) : from(['walk']);
+      if (!species.length) species = water;
       const pref = c[3].map(t => Dex.typeIndex(t));
-      const matching = species.filter(e => Dex.mon(e.pid).t.some(t => pref.includes(t)));
-      if (matching.length >= 2) species = matching;
-      const n = U.clamp(1 + Math.floor(badges / 3) + (U.chance(0.4) ? 1 : 0), 1, cls === 'acetrainer' || cls === 'veteran' ? 6 : 4);
+      const ofType = list => list.filter(e => Dex.mon(e.pid).t.some(t => pref.includes(t)));
+      const dexPool = () => (Dex.data.core.dex[reg.dex] || []).slice(0, 60 + stage * 20)
+        .filter(sid => !Dex.species(sid).leg && !Dex.species(sid).myth && !Dex.species(sid).baby).map(sid => ({ pid: Dex.defaultForm(sid) }));
+      if (pref.length && ofType(species).length >= 2) species = ofType(species);
+      else if (pref.length && ofType(dexPool()).length >= 2) species = ofType(dexPool());
+      else if (!species.length) species = dexPool();
+      const base = World.trainerLevel(regionId, loc);
+      const strong = cls === 'acetrainer' || cls === 'veteran';
+      const n = U.clamp(1 + Math.floor(stage / 3) + (U.chance(0.4) ? 1 : 0), 1, strong ? 6 : 4);
       const team = [];
       for (let i = 0; i < n; i++) {
-        const e = U.pick(species);
-        const lvl = U.clamp(PW.Game.scaleLevel(regionId, base + U.int(0, 2) + Math.floor(badges / 3) + (cls === 'acetrainer' || cls === 'veteran' ? 3 : 0)), 2, 100);
-        const pid = World.stageForLevel(e.pid, lvl, regionId);
+        // The last Pokémon is the trainer's strongest, as in the games.
+        const lvl = U.clamp(PW.Game.scaleLevel(regionId, base + (i === n - 1 ? U.int(0, 1) : U.int(-2, 0)) + (strong ? 2 : 0)), 2, 100);
+        // Re-pick when the stage for this level lost the class's type (a Bird Keeper's Gyarados is a Magikarp at Lv9).
+        let pid = World.stageForLevel(U.pick(species).pid, lvl, regionId);
+        for (let tries = 0; tries < 6 && pref.length && !Dex.mon(pid).t.some(t => pref.includes(t)); tries++) pid = World.stageForLevel(U.pick(species).pid, lvl, regionId);
         team.push(Mon.create({ pid, level: lvl, ot: name }));
       }
       const prize = c[2] * team[team.length - 1].lvl;
-      return { cls, title: c[0], name, sprite: c[1], team, prize, ai: (cls === 'acetrainer' || cls === 'veteran') ? 'elite' : 'trainer' };
+      return { cls, title: c[0], name, sprite, team, prize, ai: strong ? 'elite' : 'trainer' };
     },
 
     // Gym trainers before the leader.
@@ -518,8 +555,8 @@
     villainTeam(regionId, boss) {
       const reg = World.region(regionId);
       const loc = World.here();
-      const lr = loc ? World.levelRange(loc) : null;
-      const base = PW.Game.scaleLevel(regionId, Math.max(lr ? lr[1] : 5, World.progressLevel(regionId) - (boss ? -2 : 4)));
+      const local = loc ? World.trainerLevel(regionId, loc) : 5;
+      const base = PW.Game.scaleLevel(regionId, boss ? Math.max(local, World.progressLevel(regionId) + 2) : local);
       const n = boss ? Math.min(5, 3 + Math.floor(PW.Game.badges(regionId) / 4)) : U.int(1, 3);
       const team = [];
       for (let i = 0; i < n; i++) {

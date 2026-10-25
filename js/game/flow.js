@@ -399,8 +399,6 @@
       const first = !r.champion;
       r.champion = true;
       s.hof.push({ region: regionId, date: Date.now(), team: s.party.filter(m => !m.egg).map(m => ({ pid: m.pid, lvl: m.lvl, name: Mon.name(m), shiny: m.shiny })) });
-      const newly = [];
-      for (const other of W().regions()) if (!s.unlocked.includes(other.id)) { s.unlocked.push(other.id); newly.push(other.name); }
       const msgs = PW.Story.onChampion(regionId);
       Game().addTexp(100);
       Game().log('Zostajesz Mistrzem regionu ' + reg.name + '!', 'gold');
@@ -408,8 +406,7 @@
       return {
         title: '🏆 Nowy Mistrz ' + reg.name + '!', img: { trainer: champ.sprite }, gain: true, choices: [],
         text: champ.name + ': "Gratulacje! Od dziś jesteś Mistrzem regionu ' + reg.name + '!" Twoja drużyna zostaje wpisana do Hall of Fame.' +
-          (first ? ' Odblokowano lokacje po grze (legendy, nowe trasy i Battle Factory).' : '') +
-          (newly.length ? ' Możesz teraz podróżować do regionów: ' + newly.join(', ') + '!' : '') + (msgs.length ? ' ' + msgs.join(' ') : ''),
+          (first ? ' Odblokowano lokacje po grze (legendy, nowe trasy i Battle Factory).' : '') + (msgs.length ? ' ' + msgs.join(' ') : ''),
       };
     },
 

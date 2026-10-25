@@ -229,7 +229,6 @@ label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .region-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .region-tab { padding: 7px 13px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel2); cursor: pointer; font-weight: 800; color: var(--text); }
 .region-tab.active { background: var(--yellow); color: #1b2140; border-color: var(--yellow); }
-.region-tab.locked { opacity: .4; cursor: not-allowed; }
 
 /* ------------------------------------------------------------------ modal & toast */
 .overlay { position: fixed; inset: 0; background: rgba(5, 8, 18, .72); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fade .15s; backdrop-filter: blur(3px); }

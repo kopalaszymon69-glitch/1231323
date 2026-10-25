@@ -32,6 +32,7 @@ const consider = s => { if (/^[a-z][a-z0-9-]{1,23}$/.test(s) && !other.has(s) &&
   else if (typeof o === 'string') consider(o);
 })(D.world);
 for (const c of Object.values(PW.World.CLASSES)) consider(c[1]);
+for (const s of Object.values(PW.World.FEMALE_VARIANT)) consider(s);
 for (const dir of ['js/game', 'js/ui']) {
   for (const f of fs.readdirSync(path.join(root, dir))) {
     const src = fs.readFileSync(path.join(root, dir, f), 'utf8');

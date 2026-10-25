@@ -12,7 +12,7 @@ Grafiki Pokémonów, przedmiotów i trenerów są pobierane z PokeAPI Sprites i 
 
 ## Co jest w grze
 
-- **9 regionów**: Kanto (FireRed/LeafGreen), Johto (HeartGold/SoulSilver), Hoenn (Emerald), Sinnoh (Platinum), Unova (Black 2/White 2), Kalos (X/Y), Alola (Ultra Sun/Ultra Moon), Galar (Sword/Shield z DLC) i Paldea (Scarlet/Violet).
+- **9 regionów**: Kanto (FireRed/LeafGreen), Johto (HeartGold/SoulSilver), Hoenn (Emerald), Sinnoh (Platinum), Unova (Black 2/White 2), Kalos (X/Y), Alola (Ultra Sun/Ultra Moon), Galar (Sword/Shield z DLC) i Paldea (Scarlet/Violet). Wszystkie są otwarte od początku: z Mapy możesz w każdej chwili polecieć do innego regionu, a odznaki i Ligę każdy region ma osobno.
 - **Ponad 600 lokacji** ułożonych w kolejności fabularnej. Dzikie Pokémony i ich poziomy pochodzą z prawdziwych tabel spotkań:
   - pora dnia według prawdziwego zegara (rano, dzień, noc),
   - pory roku w Unovie (zmieniają się co miesiąc, jak w BW),
@@ -40,7 +40,8 @@ Grafiki Pokémonów, przedmiotów i trenerów są pobierane z PokeAPI Sprites i 
   - Pokédex z informacją, gdzie występuje każdy gatunek,
   - sklepy, których asortyment rośnie z liczbą odznak,
   - Przypominacz Ruchów, wymiany z NPC i Game Corner.
-- **Po grze**: skalowanie trenerów w kolejnych regionach, Battle Factory, zadania dnia, osiągnięcia, Hall of Fame i punkty akcji (można je wyłączyć).
+- **Trenerzy na trasach** mają poziomy dopasowane do etapu gry, na którym jest dana lokacja. Przed walką widać ich drużynę i można odejść.
+- **Po grze**: skalowanie trenerów w regionach zaczętych po zdobyciu tytułu Mistrza, Battle Factory, zadania dnia, osiągnięcia, Hall of Fame i punkty akcji (można je wyłączyć).
 
 ## Struktura projektu
 

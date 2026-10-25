@@ -93,7 +93,7 @@
             const reg = PW.World.region(st.region);
             UI.play({ title: reg.prof[0], img: { trainer: reg.prof[1] },
               text: '"' + esc(st.name.trim()) + ', twój ' + esc(Dex.mon(st.starter).n) + ' już cię uwielbia! Twoim celem jest zebrać ' + reg.gyms.length + (reg.trials ? ' pieczęci Prób Wyspowych' : ' odznak') + ', pokonać Elitarną Czwórkę i zostać Mistrzem. Po drodze uzupełniaj Pokédex – zajrzyj do mnie, a nagrodzę twoje postępy!" ' + msgs.map(esc).join(' ') +
-                '<br><br><span class="small muted">Wskazówka: klikaj „Szukaj Pokémonów”, by spotykać dzikie Pokémony, trenerów i wydarzenia. Pora dnia i pogoda (prawdziwy czas) zmieniają spotkania!</span>' });
+                '<br><br><span class="small muted">Wskazówka: klikaj „Szukaj Pokémonów”, by spotykać dzikie Pokémony, trenerów i wydarzenia. Pora dnia i pogoda (prawdziwy czas) zmieniają spotkania! Do innych regionów możesz polecieć w każdej chwili z Mapy.</span>' });
             return;
           }
           st.step++; draw();
@@ -113,7 +113,7 @@
       const r = PW.Game.reg(s.region);
       const w = PW.World.weather(s.region, loc);
       const tod = U.timeOfDay();
-      const lr = PW.World.levelRange(loc);
+      const lt = PW.World.levelText(loc);
       const residents = PW.World.residents(s.region, loc).slice(0, 4);
       const wcls = w.w ? 'weather-' + w.w : '';
       const facs = loc.f;
@@ -128,7 +128,7 @@
           <div class="big-ico">${PW.World.KIND_ICON[loc.k] || '📍'}</div>
           <div class="residents">${residents.map(x => PW.Game.s.dex.seen[Dex.mon(x.pid).s] ? UI.monImg(x.pid) : '').join('')}</div>
           <div class="content-z">
-            <div class="sub small">${esc(reg.name)} · ${esc(PW.World.KIND_PL[loc.k] || '')}${lr ? ' · Dzikie Pokémony: poz. ' + lr[0] + '–' + lr[1] : ''}</div>
+            <div class="sub small">${esc(reg.name)} · ${esc(PW.World.KIND_PL[loc.k] || '')}${lt ? ' · Dzikie Pokémony: ' + lt : ''}</div>
             <h1>${esc(loc.n)}</h1>
             <div class="sub small">${w.icon} ${esc(w.label)} · ${({ morning: 'Rano', day: 'Dzień', night: 'Noc' })[tod]}${reg.id === 'unova' ? ' · Pora roku: ' + ({ spring: 'wiosna', summer: 'lato', autumn: 'jesień', winter: 'zima' })[U.season()] : ''}${s.swarm && s.swarm.left > 0 && s.swarm.loc === loc.id ? ' · 🐝 Wysyp: ' + esc(Dex.mon(s.swarm.pid).n) : ''}</div>
             ${loc.d ? `<div class="sub" style="margin-top:6px;max-width:640px">${esc(loc.d)}</div>` : ''}
@@ -232,9 +232,12 @@
       const regionId = (params && params.region) || s.region;
       const reg = PW.World.region(regionId);
       const r = PW.Game.reg(regionId);
-      const unlocked = s.unlocked.includes(regionId);
       const dex = Dex.data.core.dex[reg.dex] || [];
-      const tabs = PW.World.regions().map(x => `<button class="region-tab ${x.id === regionId ? 'active' : ''} ${s.unlocked.includes(x.id) ? '' : 'locked'}" data-r="${x.id}">${esc(x.name)}${PW.Game.isChampion(x.id) ? ' 🏆' : ''}</button>`).join('');
+      const tabs = PW.World.regions().map(x => `<button class="region-tab ${x.id === regionId ? 'active' : ''}" data-r="${x.id}">${esc(x.name)}${PW.Game.isChampion(x.id) ? ' 🏆' : ''}</button>`).join('');
+      // Every region is open; flying in lands at the last Pokémon Center there, or at the professor's lab.
+      const dest = r.center || reg.lab;
+      const fly = regionId === s.region ? '' : `<div class="row" style="margin-top:10px"><button class="btn primary" id="fly">✈️ Leć do: ${esc(PW.World.locName(regionId, dest))}</button>
+          <span class="small muted">${r.flags.arrived ? 'Wracasz tam, gdzie ostatnio leczyłeś Pokémony.' : 'Każdy region ma własne odznaki i Ligę.' + (r.starter ? '' : ' ' + esc(reg.prof[0]) + ' da ci tam Pokémona startowego.')}</span></div>`;
       const groups = {};
       for (const l of reg.locs) {
         const key = l.r >= 99 ? 'Po zostaniu Mistrzem' : l.r === 0 ? 'Początek przygody' : 'Wymaga ' + l.r + ' ' + (reg.trials ? 'pieczęci' : U.plural(l.r, ['odznaki', 'odznak', 'odznak']));
@@ -249,30 +252,30 @@
             <span class="right small muted">Pokédex: ${PW.Game.caughtCount(dex)}/${dex.length} · ${reg.trials ? 'Pieczęcie' : 'Odznaki'}: ${r.badges.length}/${reg.gyms.length}${r.champion ? ' · 🏆 Mistrz' : ''}</span></div>
           <p class="muted">${esc(reg.desc)}</p>
           <div class="row" style="gap:6px">${reg.gyms.map((g, i) => `<span title="${esc(g.leader + ' – ' + g.badge)}">${UI.badge(g.type, !r.badges.includes(i), 36)}</span>`).join('')}</div>
-          ${!unlocked ? '<p class="bad"><b>Region zablokowany.</b> Zostań Mistrzem dowolnego regionu, by tu podróżować.</p>' : ''}
+          ${fly}
         </div>
         ${Object.entries(groups).map(([k, list]) => `<div class="card"><h3>${esc(k)}</h3><div class="loc-list">${list.map(l => {
-          const ok = unlocked && PW.World.accessible(regionId, l);
+          const ok = PW.World.accessible(regionId, l);
           const here = regionId === s.region && l.id === s.loc;
-          const lr = PW.World.levelRange(l);
+          const lt = PW.World.levelText(l);
           const gym = reg.gyms.some(g => g.loc === l.id);
           return `<div class="loc-item ${ok ? '' : 'locked'} ${here ? 'here' : ''}" data-l="${l.id}">
             <span class="ic">${PW.World.KIND_ICON[l.k] || '📍'}</span>
-            <span><div class="n">${esc(l.n)}</div><div class="m">${esc(PW.World.KIND_PL[l.k] || '')}${lr ? ' · Lv ' + lr[0] + '–' + lr[1] : ''}${r.visited[l.id] ? '' : ' · nieodwiedzone'}</div></span>
+            <span><div class="n">${esc(l.n)}</div><div class="m">${esc(PW.World.KIND_PL[l.k] || '')}${lt ? ' · ' + lt : ''}${r.visited[l.id] ? '' : ' · nieodwiedzone'}</div></span>
             <span class="tags">${l.f.includes('pc') ? '🏥' : ''}${l.f.includes('mart') || l.f.includes('dept') ? '🛒' : ''}${gym ? '🏅' : ''}${l.f.includes('league') ? '🏆' : ''}${(l.e || []).some(e => e.t === 'static' && (Dex.speciesOf(e.p).leg || Dex.speciesOf(e.p).myth)) ? '⭐' : ''}</span></div>`;
         }).join('')}</div></div>`).join('')}`;
-      for (const t of c.querySelectorAll('[data-r]')) t.onclick = () => {
-        if (!s.unlocked.includes(t.dataset.r)) return UI.toast('Region zablokowany – zostań Mistrzem, by tu podróżować.', 'bad');
-        S.map.render(c, { region: t.dataset.r });
+      for (const t of c.querySelectorAll('[data-r]')) t.onclick = () => S.map.render(c, { region: t.dataset.r });
+      const go = locId => {
+        const msgs = PW.Flow.travel(regionId, locId);
+        UI.go('location');
+        if (msgs.length) UI.alert('Podróż', msgs.map(esc).join('<br><br>'));
       };
+      const flyBtn = c.querySelector('#fly');
+      if (flyBtn) flyBtn.onclick = () => go(dest);
       for (const it of c.querySelectorAll('[data-l]')) it.onclick = () => {
         const l = reg._loc[it.dataset.l];
-        if (!unlocked) return UI.toast('Region zablokowany.', 'bad');
         if (!PW.World.accessible(regionId, l)) return UI.toast(l.r >= 99 ? 'Dostępne po zostaniu Mistrzem regionu.' : 'Potrzebujesz ' + l.r + ' ' + U.plural(l.r, ['odznaki', 'odznak', 'odznak']) + ' w tym regionie.', 'bad');
-        const msgs = PW.Flow.travel(regionId, l.id);
-        UI.go('location');
-        for (const m of msgs) UI.toast(m, 'gold');
-        if (msgs.length) UI.alert('Podróż', msgs.map(esc).join('<br><br>'));
+        go(l.id);
       };
     },
   };

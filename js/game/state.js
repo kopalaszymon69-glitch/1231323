@@ -33,7 +33,7 @@
         party: [], boxes: Array.from({ length: BOXES }, (_, i) => ({ name: 'Pudło ' + (i + 1), mons: [] })),
         bag: { items: {}, tms: {} },
         dex: { seen: {}, caught: {}, shiny: {}, forms: {} },
-        region: o.region, loc: null, regions: {}, unlocked: [o.region],
+        region: o.region, loc: null, regions: {},
         daycare: { mons: [], steps: 0, egg: null },
         flags: {}, repel: 0, lure: 0, swarm: null, weatherOverride: {}, roamers: {},
         quests: { daily: null, done: {} }, ach: {}, hof: [],
@@ -74,6 +74,7 @@
     },
     migrate(s) {
       s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {});
+      delete s.unlocked; // every region is open from the start
       for (const r of PW.World.regions()) if (!s.regions[r.id]) s.regions[r.id] = emptyRegion();
       for (const r of Object.values(s.regions)) { r.gymProgress = r.gymProgress || {}; r.flags = r.flags || {}; }
       s.stats = Object.assign({ battles: 0, wins: 0, losses: 0, caught: 0, shinies: 0, eggs: 0, hatched: 0, evolved: 0, trainers: 0, explore: 0, items: 0, money: 0, released: 0, legends: 0, raids: 0 }, s.stats || {});

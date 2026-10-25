@@ -96,6 +96,26 @@
     });
   }
 
+  // A route trainer's challenge: the team size and levels are shown first and the player may walk away
+  // (wandering trainers are optional here, unlike the line-of-sight trainers of the games).
+  function trainerChallenge(t) {
+    const lv = t.team.map(m => m.lvl);
+    const lo = Math.min(...lv), hi = Math.max(...lv);
+    const mine = Game().s.party.filter(m => !m.egg && m.hp > 0).map(m => m.lvl);
+    const warn = mine.length && hi >= Math.max(...mine) + 5 ? '<br><b>Uwaga: jego Pokémony są silniejsze od twoich.</b>' : '';
+    const who = t.title + ' ' + t.name;
+    return scene({
+      title: who,
+      text: who + ' cię zauważa i chce walczyć! Ma ' + t.team.length + ' ' + U.plural(t.team.length, ['Pokémona', 'Pokémony', 'Pokémonów']) +
+        ' (Lv ' + (lo === hi ? lo : lo + '–' + hi) + '). Nagroda: ' + U.money(t.prize) + '.' + warn,
+      img: { trainer: t.sprite },
+      choices: [
+        { label: '⚔️ Walcz', cls: 'primary', run: () => Object.assign(trainerScene(t, { tag: 'trainer' }), { prelude: who + ' wysyła swoje Pokémony!' }) },
+        { label: '🚶 Odejdź', run: () => scene({ title: 'Unikasz walki', text: 'Grzecznie odmawiasz i idziesz dalej.', img: { trainer: t.sprite } }) },
+      ],
+    });
+  }
+
   // ---------------------------------------------------------------- random events
   // Each event: {id, w (weight), when(ctx) -> bool, run(ctx) -> scene}
   const EVENTS = [
@@ -554,8 +574,7 @@
       const pick = U.weighted(weights, x => x[1])[0];
       if (pick === 'wild') return wildScene(regionId, loc, 'walk');
       if (pick === 'trainer' && Game().ableCount() > 0) {
-        const t = W().randomTrainer(regionId, loc);
-        return Object.assign(trainerScene(t, { tag: 'trainer' }), { prelude: t.title + ' ' + t.name + ' cię zauważa!' });
+        return trainerChallenge(W().randomTrainer(regionId, loc));
       }
       if (pick === 'event') {
         const pool = EVENTS.filter(e => { try { return e.when(c); } catch (x) { return false; } });
