@@ -94,6 +94,7 @@ python3 tools/build_bundle.py --sprites sprites --cries cries --trainers trainer
 ```sh
 node tests/sim.js 2000      # losowe walki AI kontra AI
 node tests/world_test.js    # wszystkie lokacje, zdarzenia, sale i Ligi w 9 regionach
+node tests/save_test.js     # wczytywanie zapisów ze starszych wersji
 ```
 
 ---

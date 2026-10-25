@@ -64,6 +64,7 @@
     },
 
     load() {
+      Game.loadError = null;
       try {
         const raw = localStorage.getItem(SAVE_KEY);
         if (!raw) return null;
@@ -71,13 +72,13 @@
         Game.migrate(s);
         Game.s = s;
         return s;
-      } catch (e) { console.error('load failed', e); return null; }
+      } catch (e) { console.error('load failed', e); Game.loadError = e.message || String(e); return null; }
     },
     migrate(s) {
       s.settings = Object.assign({}, DEFAULT_SETTINGS, s.settings || {});
       delete s.unlocked; // every region is open from the start
       if (s.player.tid === undefined) s.player.tid = U.int(0, 65535);
-      for (const m of s.party.concat(...s.boxes.map(b => b.mons))) if (m.tid === undefined) m.tid = Game.tidFor(m);
+      for (const m of s.party.concat(...s.boxes.map(b => b.mons))) if (m.tid === undefined) m.tid = Game.tidFor(m, s);
       for (const r of PW.World.regions()) if (!s.regions[r.id]) s.regions[r.id] = emptyRegion();
       for (const r of Object.values(s.regions)) { r.gymProgress = r.gymProgress || {}; r.flags = r.flags || {}; }
       s.stats = Object.assign({ battles: 0, wins: 0, losses: 0, caught: 0, shinies: 0, eggs: 0, hatched: 0, evolved: 0, trainers: 0, explore: 0, items: 0, money: 0, released: 0, legends: 0, raids: 0 }, s.stats || {});
@@ -149,8 +150,8 @@
     // --------------------------------------------------------------------- party / PC
     party() { return Game.s.party; },
     // Trainer ID of a Pokémon: the player's for their own, a fixed one per name for other trainers'.
-    tidFor(m) {
-      const s = Game.s;
+    tidFor(m, s) {
+      s = s || Game.s; // migrate() runs before the loaded save becomes Game.s
       if (!m.ot || m.ot === s.player.name) return s.player.tid;
       let h = 7;
       for (const ch of m.ot) h = (h * 31 + ch.charCodeAt(0)) % 65536;

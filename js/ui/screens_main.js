@@ -29,7 +29,11 @@
         </div>
         <p class="tiny muted" style="margin-top:20px">Pokémon i nazwy postaci są własnością Nintendo / Creatures / GAME FREAK. Fanowski projekt niekomercyjny.<br>Dane: PokeAPI, Serebii (Paldea). Grafiki ładowane z PokeAPI Sprites i Pokémon Showdown.</p>
       </div></div>`;
-      if (hasSave) el.querySelector('#t-cont').onclick = () => { if (PW.Game.load()) UI.startGame(); };
+      if (hasSave) el.querySelector('#t-cont').onclick = () => {
+        if (PW.Game.load()) return UI.startGame();
+        UI.alert('Nie udało się wczytać zapisu', 'Zapis jest nadal w przeglądarce i nie został usunięty, ale gra nie potrafi go otworzyć.' +
+          (PW.Game.loadError ? '<br><br><span class="small muted">Błąd: ' + esc(PW.Game.loadError) + '</span>' : ''));
+      };
       el.querySelector('#t-new').onclick = async () => {
         if (hasSave && !(await UI.confirm('Nowa gra', 'Rozpoczęcie nowej gry nadpisze obecny zapis. Kontynuować?', 'Nowa gra'))) return;
         S.title.wizard();
