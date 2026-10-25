@@ -26,7 +26,7 @@
         <div class="col">${list.map(id => {
           const isTm = typeof id === 'string';
           const count = isTm ? '' : '×' + items[id];
-          const usable = !isTm && ['medicine', 'berries', 'evo', 'other', 'battle'].includes(pocket);
+          const usable = !isTm && (['medicine', 'berries', 'evo', 'other'].includes(pocket) || ['poke-radar', 'poke-flute'].includes(PW.Items.key(id)));
           return `<div class="item-row">${UI.itemImg(id)}<div class="grow"><div class="n">${esc(PW.Items.name(id))} <span class="muted">${count}</span></div><div class="d">${esc(PW.Items.desc(id))}</div></div>
             <div class="row" style="gap:4px">${usable ? `<button class="btn sm" data-use="${id}">Użyj</button>` : ''}${isTm ? `<button class="btn sm" data-tm="${id.slice(2)}">Naucz</button>` : ''}${PW.Items.canHold(id) && !isTm ? `<button class="btn sm" data-give="${id}">Daj</button>` : ''}</div></div>`;
         }).join('') || '<div class="empty">Ta kieszeń jest pusta.</div>'}</div></div>`;
@@ -55,6 +55,8 @@
       const s = Game().s;
       if (PW.Items.REPELS[k]) { Game().takeItem(id, 1); s.repel = PW.Items.REPELS[k]; UI.toast('Repel działa przez ' + s.repel + ' wypraw.', 'good'); return S.bag.render(c); }
       if (PW.Items.LURES[k]) { Game().takeItem(id, 1); s.lure = PW.Items.LURES[k]; UI.toast('Przynęta przyciąga Pokémony przez ' + s.lure + ' wypraw.', 'good'); return S.bag.render(c); }
+      if (k === 'poke-radar') { s.radarOn = !s.radarOn; UI.toast(s.radarOn ? 'Poké Radar włączony – w trawie Sinnoh pojawią się rzadkie Pokémony.' : 'Poké Radar wyłączony.', 'good'); return S.bag.render(c); }
+      if (k === 'poke-flute') { for (const m of s.party) if (m.st === 'slp') { m.st = null; m.slp = 0; } UI.toast('Melodia Poké Flute budzi śpiące Pokémony!', 'good'); return S.bag.render(c); }
       if (k === 'escape-rope') {
         const center = Game().reg().center || PW.World.hereRegion().lab;
         Game().takeItem(id, 1); s.loc = center; UI.toast('Wracasz do: ' + PW.World.locName(s.region, center), 'good'); return UI.go('location');
@@ -285,7 +287,7 @@
           </div></div></div>
         <div class="card"><div class="section-title">🎖️ Odznaki</div>${PW.World.regions().map(r => {
           const rr = s.regions[r.id];
-          return `<div class="row" style="margin-bottom:8px"><b style="width:80px">${esc(r.name)}</b>${r.gyms.map((g, i) => `<span title="${esc(g.badge + ' – ' + g.leader)}">${UI.badge(g.type, !rr.badges.includes(i)).replace('badge-icon', 'badge-icon" style="width:30px;height:30px;font-size:13px;border-width:2px')}</span>`).join('')}${rr.champion ? ' <span class="pill gold">🏆 Mistrz</span>' : ''}</div>`;
+          return `<div class="row" style="margin-bottom:8px"><b style="width:80px">${esc(r.name)}</b>${r.gyms.map((g, i) => `<span title="${esc(g.badge + ' – ' + g.leader)}">${UI.badge(g.type, !rr.badges.includes(i), 30)}</span>`).join('')}${rr.champion ? ' <span class="pill gold">🏆 Mistrz</span>' : ''}</div>`;
         }).join('')}</div>
         <div class="card"><div class="section-title">🏛️ Hall of Fame</div>${s.hof.length ? s.hof.slice().reverse().map(h => `<div class="item-row" style="margin-bottom:6px"><div style="width:120px"><b>${esc(PW.World.region(h.region).name)}</b><div class="tiny muted">${new Date(h.date).toLocaleDateString('pl-PL')}</div></div><div class="row" style="gap:0">${h.team.map(t => `<span title="${esc(t.name)} Lv${t.lvl}">${UI.monImg(t.pid, { shiny: t.shiny, style: 'width:56px;height:56px' })}</span>`).join('')}</div></div>`).join('') : '<div class="muted">Jeszcze nikt tu nie trafił. Zostań Mistrzem!</div>'}</div>
         <div class="card"><div class="section-title">📊 Statystyki</div><table class="tbl">

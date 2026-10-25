@@ -134,16 +134,17 @@
             ${loc.d ? `<div class="sub" style="margin-top:6px;max-width:640px">${esc(loc.d)}</div>` : ''}
           </div>
         </div>
+        <div class="row" id="nearby">${S.location.nearbyHtml(reg, loc)}</div>
         ${s.league && s.league.region === s.region ? `<div class="card" style="border-color:var(--gold)"><b>🏆 Trwa wyzwanie Ligi (${s.league.step + 1}/5).</b> <button class="btn yellow sm" id="league-cont">Kontynuuj</button></div>` : ''}
         <div class="card">
           <div class="section-title">🧭 Działania ${apOn ? `<span class="pill right">⚡ ${s.player.ap} PA</span>` : ''}</div>
           <div class="actions" id="acts">
-            ${acts.map(a => `<button class="action ${a.id === 'explore' ? 'main' : ''} ${a.ok === false ? 'locked' : ''}" data-act="${a.id}" title="${a.ok === false ? esc(a.why) : ''}">
+            ${acts.map(a => `<button class="action ${a.id === 'explore' ? 'hero-act' : ''} ${a.ok === false ? 'locked' : ''}" data-act="${a.id}" title="${a.ok === false ? esc(a.why) : ''}">
               <span class="ic">${a.icon}</span><span><div class="t">${esc(a.label)}</div><div class="d">${a.ok === false ? esc(a.why) : (apOn ? '−' + a.ap + ' PA' : 'Wyprawa')}</div></span></button>`).join('')}
             ${facs.includes('pc') ? `<button class="action" data-fac="pc"><span class="ic">🏥</span><span><div class="t">Centrum Pokémon</div><div class="d">Leczenie i PC</div></span></button>` : ''}
             ${facs.includes('mart') || facs.includes('dept') ? `<button class="action" data-fac="shop"><span class="ic">🛒</span><span><div class="t">${facs.includes('dept') ? 'Dom Towarowy' : 'Poké Mart'}</div><div class="d">Kupuj i sprzedawaj</div></span></button>` : ''}
             ${gyms.map(gi => { const g = reg.gyms[gi]; const has = r.badges.includes(gi); const can = r.badges.length >= gi || r.champion;
-              return `<button class="action special ${can ? '' : 'locked'}" data-gym="${gi}"><span class="ic">${UI.badge(g.type, !has).replace('badge-icon', 'badge-icon" style="width:34px;height:34px;font-size:15px;border-width:2px')}</span><span><div class="t">${g.trial ? 'Próba' : 'Sala'}: ${esc(g.leader)}</div><div class="d">${has ? '✔ ' + esc(g.badge) + ' (rewanż)' : can ? esc(Dex.TYPE_PL[g.type]) + ' · ' + esc(g.badge) : 'Najpierw zdobądź ' + gi + ' odznak'}</div></span></button>`; }).join('')}
+              return `<button class="action special ${can ? '' : 'locked'}" data-gym="${gi}"><span class="ic">${UI.badge(g.type, !has, 34)}</span><span><div class="t">${g.trial ? 'Próba' : 'Sala'}: ${esc(g.leader)}</div><div class="d">${has ? '✔ ' + esc(g.badge) + ' (rewanż)' : can ? esc(Dex.TYPE_PL[g.type]) + ' · ' + esc(g.badge) : 'Najpierw zdobądź ' + gi + ' odznak'}</div></span></button>`; }).join('')}
             ${facs.includes('league') ? `<button class="action special" data-fac="league"><span class="ic">🏆</span><span><div class="t">Liga Pokémon</div><div class="d">${r.champion ? 'Jesteś Mistrzem – obroń tytuł!' : 'Elitarna Czwórka i Mistrz'}</div></span></button>` : ''}
             ${facs.includes('daycare') ? `<button class="action" data-fac="daycare"><span class="ic">🥚</span><span><div class="t">Hodowla Pokémonów</div><div class="d">${s.daycare.egg ? 'Czeka jajo!' : s.daycare.mons.length + '/2 Pokémonów'}</div></span></button>` : ''}
             ${extra.map((t, i) => `<button class="action special" data-extra="${i}"><span class="ic">🌟</span><span><div class="t">${esc(t.title)}: ${esc(t.name)}</div><div class="d">Najsilniejszy przeciwnik regionu</div></span></button>`).join('')}
@@ -165,8 +166,24 @@
       };
       for (const b of c.querySelectorAll('[data-sp]')) b.onclick = () => { const x = special[+b.dataset.sp]; if (x.locked) return UI.alert(esc(x.label), esc(x.desc)); UI.play(x.run()); };
       for (const b of c.querySelectorAll('[data-extra]')) b.onclick = () => UI.play(PW.Flow.extraTrainerScene(s.region, extra[+b.dataset.extra]));
+      for (const b of c.querySelectorAll('[data-go-loc]')) b.onclick = () => {
+        const msgs = PW.Flow.travel(s.region, b.dataset.goLoc);
+        UI.go('location');
+        for (const m of msgs) UI.toast(m, 'gold');
+      };
       const lc = c.querySelector('#league-cont');
       if (lc) lc.onclick = () => UI.play(PW.Flow.leagueScene(s.region));
+    },
+    // Previous / next accessible locations in story order for quick travel.
+    nearbyHtml(reg, loc) {
+      const list = reg.locs.filter(l => PW.World.accessible(reg.id, l));
+      const i = list.findIndex(l => l.id === loc.id);
+      const prev = i > 0 ? list[i - 1] : null, next = i >= 0 && i < list.length - 1 ? list[i + 1] : null;
+      const center = PW.Game.reg(reg.id).center;
+      const btn = (l, label) => `<button class="btn sm" data-go-loc="${l.id}">${label}</button>`;
+      return (prev ? btn(prev, '← ' + esc(prev.n)) : '') + (next ? btn(next, esc(next.n) + ' →') : '') +
+        (center && center !== loc.id ? btn({ id: center }, '🏥 ' + esc(PW.World.locName(reg.id, center))) : '') +
+        `<button class="btn sm right" onclick="PW.UI.go('map')">🗺️ Mapa regionu</button>`;
     },
     drawResidents(box, all) {
       const s = PW.Game.s;
@@ -231,7 +248,7 @@
           <div class="row"><h2 style="margin:0">${esc(reg.name)}</h2><span class="pill">Gen ${reg.gen} · ${esc(reg.game)}</span>
             <span class="right small muted">Pokédex: ${PW.Game.caughtCount(dex)}/${dex.length} · ${reg.trials ? 'Pieczęcie' : 'Odznaki'}: ${r.badges.length}/${reg.gyms.length}${r.champion ? ' · 🏆 Mistrz' : ''}</span></div>
           <p class="muted">${esc(reg.desc)}</p>
-          <div class="row" style="gap:6px">${reg.gyms.map((g, i) => `<span title="${esc(g.leader + ' – ' + g.badge)}">${UI.badge(g.type, !r.badges.includes(i)).replace('badge-icon', 'badge-icon" style="width:36px;height:36px;font-size:16px;border-width:2px')}</span>`).join('')}</div>
+          <div class="row" style="gap:6px">${reg.gyms.map((g, i) => `<span title="${esc(g.leader + ' – ' + g.badge)}">${UI.badge(g.type, !r.badges.includes(i), 36)}</span>`).join('')}</div>
           ${!unlocked ? '<p class="bad"><b>Region zablokowany.</b> Zostań Mistrzem dowolnego regionu, by tu podróżować.</p>' : ''}
         </div>
         ${Object.entries(groups).map(([k, list]) => `<div class="card"><h3>${esc(k)}</h3><div class="loc-list">${list.map(l => {

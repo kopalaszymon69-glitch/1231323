@@ -75,12 +75,12 @@
       const nextAp = s.settings.ap && p.ap < apMax ? Math.ceil((PW.Game.apRegenMs - (Date.now() - p.apTs)) / 1000) : 0;
       tb.innerHTML = `
         <span class="chip hide-m" title="Region i lokacja">${reg ? esc(reg.name) : ''} · ${loc ? esc(loc.n) : ''}</span>
-        <span class="chip" title="Pora dnia (czas rzeczywisty) i pogoda">${todIcon}${w ? ' ' + w.icon : ''}</span>
+        <span class="chip" title="Pora dnia (czas rzeczywisty) i pogoda: ${w ? esc(w.label) : ''}">${todIcon}<span class="hide-m">${w ? ' ' + esc(w.label) : ''}</span></span>
         <span class="chip" title="Pieniądze">💰 <b>${U.money(p.money)}</b></span>
         ${s.settings.ap ? `<span class="chip" title="Punkty Akcji – odnawiają się z czasem${nextAp ? ' (następny za ' + nextAp + ' s)' : ''}">⚡ <b>${p.ap}</b>/${apMax}<span class="apbar hide-m"><div style="width:${Math.min(100, p.ap / apMax * 100)}%"></div></span></span>` : ''}
         <span class="trainer-mini" onclick="PW.UI.go('profile')" title="Poziom trenera ${p.tlvl}">
           ${UI.trainerImg(p.avatar, 'width:34px;height:34px')}
-          <span><b>${esc(p.name)}</b><br><span class="tiny muted">Poz. ${p.tlvl}</span><div class="lvlbar"><div style="width:${Math.min(100, p.texp / PW.Game.texpNeeded(p.tlvl) * 100)}%"></div></div></span>
+          <span class="tm-name"><b>${esc(p.name)}</b><br><span class="tiny muted">Poz. ${p.tlvl}</span><div class="lvlbar"><div style="width:${Math.min(100, p.texp / PW.Game.texpNeeded(p.tlvl) * 100)}%"></div></div></span>
         </span>`;
     },
 
@@ -145,9 +145,10 @@
     hpClass(f) { return f > 0.5 ? '' : f > 0.2 ? 'mid' : 'low'; },
     hpBar(hp, max) { const f = max ? hp / max : 0; return `<div class="hp ${UI.hpClass(f)}"><div style="width:${Math.max(0, f * 100)}%"></div></div>`; },
     gender(g) { return g === 'M' ? '<span class="gender-M">♂</span>' : g === 'F' ? '<span class="gender-F">♀</span>' : ''; },
-    badge(type, off) {
+    badge(type, off, size) {
       const color = getComputedStyle(document.documentElement).getPropertyValue('--t-' + type) || '#888';
-      return `<span class="badge-icon${off ? ' off' : ''}" style="background:radial-gradient(circle at 35% 30%, #fff8, transparent 45%), ${color}">${({ rock: '◆', water: '💧', electric: '⚡', grass: '🌿', poison: '☠', psychic: '👁', fire: '🔥', ground: '⛰', flying: '🪶', bug: '🐞', normal: '●', ghost: '👻', fighting: '👊', steel: '⚙', ice: '❄', dragon: '🐉', dark: '🌑', fairy: '✿' })[type] || '★'}</span>`;
+      const sz = size ? `width:${size}px;height:${size}px;font-size:${Math.round(size * 0.44)}px;border-width:2px;` : '';
+      return `<span class="badge-icon${off ? ' off' : ''}" style="${sz}background:radial-gradient(circle at 35% 30%, #fff8, transparent 45%), ${color}">${({ rock: '◆', water: '💧', electric: '⚡', grass: '🌿', poison: '☠', psychic: '👁', fire: '🔥', ground: '⛰', flying: '🪶', bug: '🐞', normal: '●', ghost: '👻', fighting: '👊', steel: '⚙', ice: '❄', dragon: '🐉', dark: '🌑', fairy: '✿' })[type] || '★'}</span>`;
     },
     monCard(m, extra) {
       if (m.egg) {
@@ -377,7 +378,7 @@
           if (cancelled) { UI.toast('Ewolucja ' + before + ' została przerwana.'); return res(); }
           const ev = PW.Flow.doEvolve(m, row);
           const box = md.el.querySelector('#evo-img');
-          if (box) box.innerHTML = UI.monImg(m.pid, { shiny: m.shiny, art: true, style: 'width:180px;height:180px' });
+          if (box) { box.classList.remove('evolve-anim'); box.innerHTML = UI.monImg(m.pid, { shiny: m.shiny, art: true, style: 'width:180px;height:180px' }); }
           md.el.querySelector('.mb p').innerHTML = `Gratulacje! ${esc(before)} ewoluował w <b>${esc(Dex.mon(m.pid).n)}</b>!` + (ev.extra ? ` <br>W Poké Ballu pojawia się też ${esc(Dex.mon(ev.extra.pid).n)}!` : '');
           const mf = md.el.querySelector('.mf') || document.createElement('div');
           mf.className = 'mf'; mf.innerHTML = '';

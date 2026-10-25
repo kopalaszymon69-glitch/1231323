@@ -472,9 +472,10 @@
 
     rivalTeam(regionId, stage) {
       const reg = World.region(regionId);
-      const lvl = Math.max(5, PW.Game.scaleLevel(regionId, World.progressLevel(regionId) - 1));
+      // First battle mirrors the games: just the rival's starter at level 5.
+      const lvl = stage === 0 ? 5 : Math.max(5, PW.Game.scaleLevel(regionId, World.progressLevel(regionId) - 2));
       const ids = [];
-      const n = Math.min(6, 2 + stage);
+      const n = stage === 0 ? 1 : Math.min(6, 2 + stage);
       const pool = reg.rival.mons.concat(stage >= 2 ? reg.rival.late : []);
       for (let i = 0; i < n - 1 && i < pool.length; i++) ids.push(pool[i]);
       const team = ids.map(pid => {
@@ -482,7 +483,7 @@
         const evo = World.evolveForLevel(pid, l, regionId);
         return Mon.create({ pid: evo, level: l, moves: World.bestMoves(evo, l), ot: reg.rival.name });
       });
-      const sl = U.clamp(lvl + 1, 5, 100);
+      const sl = U.clamp(stage === 0 ? lvl : lvl + 1, 5, 100);
       const st = World.evolveForLevel(World.rivalStarter(regionId), sl, regionId);
       team.push(Mon.create({ pid: st, level: sl, moves: World.bestMoves(st, sl), ot: reg.rival.name }));
       return team;

@@ -207,8 +207,8 @@ label.check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
 .action .ic { font-size: 26px; width: 34px; text-align: center; }
 .action .t { font-weight: 800; }
 .action .d { font-size: 12px; color: var(--muted); }
-.action.main { background: linear-gradient(135deg, #e3350d, #b02a0a); border-color: #ff7b5c; }
-.action.main .d { color: #ffd9cf; }
+.action.hero-act { background: linear-gradient(135deg, #e3350d, #b02a0a); border-color: #ff7b5c; }
+.action.hero-act .d { color: #ffd9cf; }
 .action.locked { opacity: .5; cursor: not-allowed; }
 .action.special { border-color: rgba(255, 203, 5, .45); background: linear-gradient(135deg, rgba(255, 203, 5, .14), rgba(255, 203, 5, .03)); }
 
@@ -434,8 +434,18 @@ table.tbl th { color: var(--muted); font-weight: 700; font-size: 12px; text-tran
   .g3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
-  .topbar { padding: 6px 10px; gap: 8px; }
-  .logo { font-size: 10px; }
+  .topbar { padding: 6px 10px; gap: 8px; flex-wrap: nowrap; }
+  .logo { font-size: 8px; line-height: 1.4; }
+  .tb-stats { flex-wrap: nowrap; gap: 5px; }
+  .trainer-mini .tm-name { display: none; }
+  .bmon.foe { width: 42vw; height: 42vw; right: 6%; top: 12%; }
+  .bmon.me { width: 50vw; height: 50vw; left: 2%; bottom: 10%; }
+  .trainer-sprite { height: 30%; }
+  .binfo.foe { left: 3%; top: 3%; }
+  .binfo.me { right: 3%; bottom: 3%; }
+  .bmenu .btn { padding: 10px 6px; font-size: 15px; }
+  .move-btn { padding: 7px 9px; }
+  .move-btn .mn { font-size: 14px; }
   .chip { padding: 3px 8px; font-size: 12px; }
   .g2, .g3 { grid-template-columns: 1fr; }
   .loc-hero h1 { font-size: 22px; }
