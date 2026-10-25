@@ -43,6 +43,17 @@
 
     // Rewards for gym badges beyond the TM: fishing rods and gimmick items.
     onBadge(regionId, count) {
+      const msgs = Story.giveRods(regionId, count);
+      if (regionId === 'kalos' && count >= 3 && !Game().has('mega-ring')) {
+        give('mega-ring'); give('lucarionite');
+        msgs.push('W Wieży Mistrzostwa Gurkinn wręcza ci Mega Ring i Lucarionite! Pokémony trzymające Mega Kamień mogą teraz Mega Ewoluować (raz na walkę).');
+      }
+      if (count >= 1 && !Game().has('dowsing-machine')) { give('dowsing-machine'); msgs.push('Otrzymujesz Dowsing Machine – łatwiej znajdziesz ukryte przedmioty.'); }
+      return msgs;
+    },
+
+    // Fishing rods for a region's badge count; also called on travel, so a rod missed earlier still arrives.
+    giveRods(regionId, count) {
       const reg = PW.World.region(regionId);
       const msgs = [];
       const rods = reg.rods || [0, 0, 0];
@@ -50,11 +61,6 @@
       names.forEach((k, i) => {
         if (rods[i] && count >= rods[i] && !Game().has(k)) { give(k); msgs.push('Rybak w mieście daje ci ' + Dex.item(I(k)).n + '!'); }
       });
-      if (regionId === 'kalos' && count >= 3 && !Game().has('mega-ring')) {
-        give('mega-ring'); give('lucarionite');
-        msgs.push('W Wieży Mistrzostwa Gurkinn wręcza ci Mega Ring i Lucarionite! Pokémony trzymające Mega Kamień mogą teraz Mega Ewoluować (raz na walkę).');
-      }
-      if (count >= 1 && !Game().has('dowsing-machine')) { give('dowsing-machine'); msgs.push('Otrzymujesz Dowsing Machine – łatwiej znajdziesz ukryte przedmioty.'); }
       return msgs;
     },
 

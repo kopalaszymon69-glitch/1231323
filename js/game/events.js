@@ -116,6 +116,16 @@
     });
   }
 
+  // Where a missing fishing rod comes from: a fisherman hands it over after a number of badges (Story.onBadge).
+  function rodHint(regionId, rod) {
+    const reg = W().region(regionId);
+    const i = ['old-rod', 'good-rod', 'super-rod'].indexOf(rod);
+    const need = (reg.rods || [])[i];
+    const name = Dex.item(I(rod)).n;
+    if (!need) return 'Potrzebujesz: ' + name + '.';
+    return name + ' od rybaka po ' + need + '. ' + (reg.trials ? 'pieczęci' : 'odznace') + ' w regionie ' + reg.name + ' (masz ' + Game().badges(regionId) + ').';
+  }
+
   // ---------------------------------------------------------------- random events
   // Each event: {id, w (weight), when(ctx) -> bool, run(ctx) -> scene}
   const EVENTS = [
@@ -534,7 +544,7 @@
       out.push({ id: 'explore', label: has('walk') ? 'Szukaj Pokémonów' : 'Rozejrzyj się', icon: has('walk') ? '🌿' : '👀', ap: 1 });
       if (has('surf')) out.push({ id: 'surf', label: 'Surfuj', icon: '🏄', ap: 1, ok: W().methodUnlocked(regionId, 'surf'), why: 'Surfowanie wymaga ' + (W().region(regionId).surf || 0) + ' ' + PW.U.plural(W().region(regionId).surf || 0, ['odznaki', 'odznak', 'odznak']) + ' w tym regionie.' });
       for (const rod of ['old-rod', 'good-rod', 'super-rod']) {
-        if (has(rod)) out.push({ id: rod, label: W().METHOD_PL[rod], icon: '🎣', ap: 1, ok: W().methodUnlocked(regionId, rod), why: 'Potrzebujesz: ' + Dex.item(I(rod)).n + '.' });
+        if (has(rod)) out.push({ id: rod, label: W().METHOD_PL[rod], icon: '🎣', ap: 1, ok: W().methodUnlocked(regionId, rod), why: rodHint(regionId, rod) });
       }
       if (has('rock-smash')) out.push({ id: 'rock-smash', label: 'Rozbijaj skały', icon: '🪨', ap: 1, ok: W().methodUnlocked(regionId, 'rock-smash'), why: 'Wymaga 1 odznaki.' });
       if (has('headbutt')) out.push({ id: 'headbutt', label: 'Potrząsaj drzewami', icon: '🌳', ap: 1 });

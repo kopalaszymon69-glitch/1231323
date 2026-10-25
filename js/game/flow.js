@@ -438,6 +438,7 @@
       }
       s.loc = locId;
       const r = Game().reg(regionId);
+      msgs.push(...PW.Story.giveRods(regionId, r.badges.length));
       r.visited[locId] = 1;
       const loc = W().loc(regionId, locId);
       if (loc && loc.f.includes('pc')) r.center = locId;
