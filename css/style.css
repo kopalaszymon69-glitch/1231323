@@ -113,7 +113,7 @@ img.px { image-rendering: pixelated; image-rendering: crisp-edges; }
 .btn .cost { font-size: 11px; opacity: .8; font-weight: 600; }
 .icon-btn { width: 36px; height: 36px; padding: 0; }
 
-input[type=text], input[type=number], select, textarea {
+input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea {
   background: #0d1326; color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font: inherit; outline: none;
 }
 input:focus, select:focus, textarea:focus { border-color: var(--yellow); }
@@ -473,3 +473,10 @@ table.tbl th { color: var(--muted); font-weight: 700; font-size: 12px; text-tran
   .binfo.foe { left: 2%; top: 4%; }
   .binfo.me { right: 2%; bottom: 4%; }
 }
+
+/* ------------------------------------------------------------------ cheats */
+.console-out { background: #070a14; border: 1px solid #263055; border-radius: 10px; padding: 10px 12px; font-family: ui-monospace, 'Cascadia Mono', Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.45; max-height: 300px; overflow: auto; white-space: pre-wrap; word-break: break-word; }
+.console-out > div + div { margin-top: 6px; }
+.console-out .c-cmd { color: #ffd84a; }
+.console-out .c-ok { color: #8fe3a0; }
+.console-out .c-err { color: #ff8f8f; }

@@ -22,6 +22,13 @@
       window.addEventListener('error', e => report(e.message));
       window.addEventListener('unhandledrejection', e => report(e.reason && (e.reason.stack || e.reason.message) || e.reason));
       document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.topModal()) UI.topModal().close(); });
+      // ` (backquote) opens the cheat console when cheats are on.
+      document.addEventListener('keydown', e => {
+        if (e.key !== '`' || !PW.Cheats.enabled() || UI.busy || UI.topModal() || /^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName || '')) return;
+        e.preventDefault();
+        UI.go('cheats');
+        setTimeout(() => { const i = document.getElementById('cin'); if (i) i.focus(); }, 0);
+      });
       // Delegated so markup needs no inline handlers (strict hosts block them).
       document.addEventListener('click', e => { const t = e.target.closest('[data-goto]'); if (t) UI.go(t.dataset.goto); });
       setInterval(() => { if (PW.Game.s) { PW.Game.tickAP(); UI.updateTop(); } }, 5000);
@@ -52,7 +59,8 @@
     },
 
     renderNav() {
-      const html = NAV.map(([id, ic, label]) => `<button data-go="${id}" class="${UI.cur === id ? 'active' : ''}"><span class="ic">${ic}</span><span>${label}</span>${id === 'quests' && UI.questBadge() ? `<span class="badge-count">${UI.questBadge()}</span>` : ''}</button>`).join('');
+      const items = NAV.concat(PW.Cheats && PW.Cheats.enabled() ? [['cheats', '🛠️', 'Cheaty']] : []);
+      const html = items.map(([id, ic, label]) => `<button data-go="${id}" class="${UI.cur === id ? 'active' : ''}"><span class="ic">${ic}</span><span>${label}</span>${id === 'quests' && UI.questBadge() ? `<span class="badge-count">${UI.questBadge()}</span>` : ''}</button>`).join('');
       const nav = document.getElementById('nav'), mnav = document.getElementById('mnav');
       if (nav) nav.innerHTML = html;
       if (mnav) mnav.innerHTML = html;

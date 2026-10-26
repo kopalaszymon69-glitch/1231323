@@ -319,7 +319,7 @@
       const p = Dex.mon(pid);
       let item = null;
       for (const [iid, rate] of (p.hi || [])) if (!item && U.int(1, 100) <= rate) item = iid;
-      const m = Mon.create({ pid, level, shinyRolls: rolls, hiddenChance: o.hiddenChance || 0.02, item, shiny: o.shiny,
+      const m = Mon.create({ pid, level, shinyRolls: rolls, hiddenChance: o.hiddenChance || 0.02, item, shiny: PW.Cheats.flags().shiny || o.shiny,
         perfectIvs: o.perfectIvs, ot: '' });
       if (U.int(1, 21845) === 1) m.pkrs = true;
       PW.Game.markSeen(pid);

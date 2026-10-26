@@ -297,6 +297,7 @@
             <div class="progress"><div style="width:${p.texp / Game().texpNeeded(p.tlvl) * 100}%"></div></div>
             <div>Pieniądze: <b>${U.money(p.money)}</b> · BP: <b>${p.bp}</b> · Monety: <b>${p.coins}</b></div>
             <div>Pokédex: złapane <b>${Game().caughtCount()}</b> · widziane <b>${Game().seenCount()}</b> · shiny <b>${Object.keys(s.dex.shiny).length}</b> · ukończone badania <b>${PW.Research.completed()}</b></div>
+            ${s.cheated ? '<div><span class="pill">🛠️ Zapis z użyciem cheatów</span></div>' : ''}
             <div>Numer ID trenera: <b>${String(p.tid).padStart(5, '0')}</b> <span class="muted small">(liczy się w loteriach w Goldenrod, Lilycove i Jubilife)</span></div>
             <div>Czas gry: ${hrs} h ${mins} min · Rozpoczęto: ${new Date(s.created).toLocaleDateString('pl-PL')}</div>
           </div></div></div>
@@ -324,6 +325,7 @@
           ${chk('nicknames', 'Pytaj o przezwiska', 'Po złapaniu lub wykluciu zaproponuj nadanie przezwiska.')}
           ${chk('scaling', 'Skalowanie trenerów w kolejnych regionach', 'Po zostaniu Mistrzem trenerzy w nowych regionach walczą na twoim poziomie (dzikie Pokémony pozostają oryginalne).')}
           ${chk('expShare', 'Exp. Share', 'Pokémony spoza walki dostają 50% doświadczenia.')}
+          ${chk('cheats', '🛠️ Cheaty', 'Dodaje ekran Cheaty: konsolę komend (klawisz `), edytor Pokémonów (IV, EV, natura, zdolność, ruchy, poziom, shiny) i przełączniki. Zapis zostanie oznaczony jako z cheatami.')}
           <div class="row"><b>Szybkość tekstu w walce</b><select data-sel="textSpeed">${['Wolna', 'Normalna', 'Szybka', 'Błyskawiczna'].map((n, i) => `<option value="${i}" ${st.textSpeed === i ? 'selected' : ''}>${n}</option>`).join('')}</select></div>
           <div class="row"><b>Slot GBA (Sinnoh, DS)</b><select data-sel="gba" ${Game().isChampion('sinnoh') ? '' : 'disabled'}>${['none', 'ruby', 'sapphire', 'emerald', 'firered', 'leafgreen'].map(n => `<option value="${n}" ${st.gba === n ? 'selected' : ''}>${n === 'none' ? 'Brak' : n}</option>`).join('')}</select><span class="small muted">Dual-slot: po zostaniu Mistrzem Sinnoh pojawiają się Pokémony z gier GBA.</span></div>
           <div class="row"><b>Radio PokéGear (Johto)</b><select data-sel="radio" ${s.flags.radio ? '' : 'disabled'}>${[['off', 'Wyłączone'], ['hoenn', 'Hoenn Sound'], ['sinnoh', 'Sinnoh Sound']].map(([v, n]) => `<option value="${v}" ${st.radio === v ? 'selected' : ''}>${n}</option>`).join('')}</select><span class="small muted">Odblokujesz w Radio Tower (Goldenrod) po zostaniu Mistrzem Johto.</span></div>
@@ -332,7 +334,7 @@
           <p class="small muted">Gra zapisuje się automatycznie w przeglądarce. Ostatni zapis: ${new Date(s.saved).toLocaleString('pl-PL')}.</p>
           <div class="row"><button class="btn primary" id="save">Zapisz teraz</button><button class="btn" id="export">📤 Eksportuj zapis</button><button class="btn" id="import">📂 Importuj zapis</button><input type="file" id="file" class="hidden" accept=".json,.txt">
           <button class="btn" id="title">↩ Ekran tytułowy</button><button class="btn" id="wipe" style="border-color:var(--danger)">🗑 Usuń zapis</button></div></div>`;
-      for (const i of c.querySelectorAll('[data-k]')) i.onchange = () => { st[i.dataset.k] = i.checked; Game().save(); UI.updateTop(); };
+      for (const i of c.querySelectorAll('[data-k]')) i.onchange = () => { st[i.dataset.k] = i.checked; Game().save(); UI.updateTop(); if (i.dataset.k === 'cheats') UI.renderNav(); };
       for (const i of c.querySelectorAll('[data-sel]')) i.onchange = () => { const v = i.value; st[i.dataset.sel] = /^\d+$/.test(v) ? +v : v; Game().save(); };
       c.querySelector('#save').onclick = () => { Game().save(); UI.toast('Zapisano grę.', 'good'); };
       // Export shows the save as text to copy; a file download is offered only where the page may start one.

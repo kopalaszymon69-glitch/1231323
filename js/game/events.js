@@ -586,11 +586,12 @@
       }
       const c = Explore.ctx(regionId, loc);
       const urban = ['town', 'city', 'league'].includes(loc.k);
-      let wildW = c.walk ? (urban ? 30 : 52) : 0;
+      const cheat = PW.Cheats.flags();
+      let wildW = c.walk && !cheat.noWild ? (urban ? 30 : 52) : 0;
       if (s.lure > 0) wildW *= 1.6;
       const weights = [
         ['wild', wildW],
-        ['trainer', urban ? 10 : (c.walk ? 15 : 22)],
+        ['trainer', cheat.noTrainers ? 0 : urban ? 10 : (c.walk ? 15 : 22)],
         ['event', urban ? 40 : 25],
         ['nothing', urban ? 14 : 8],
       ];
@@ -600,7 +601,9 @@
         return trainerChallenge(W().randomTrainer(regionId, loc));
       }
       if (pick === 'event') {
-        const pool = EVENTS.filter(e => { try { return e.when(c); } catch (x) { return false; } });
+        // Cheat toggles also skip the random events that start wild or trainer battles.
+        const skip = (cheat.noWild ? ['rustle', 'shiny', 'roamer', 'ultra-wormhole', 'raid', 'gimmighoul'] : []).concat(cheat.noTrainers ? ['villain', 'villain-boss', 'rival', 'bug-contest'] : []);
+        const pool = EVENTS.filter(e => { try { return !skip.includes(e.id) && e.when(c); } catch (x) { return false; } });
         for (let tries = 0; tries < 4 && pool.length; tries++) {
           const ev = U.weighted(pool, e => e.w);
           const sc = ev.run(c);

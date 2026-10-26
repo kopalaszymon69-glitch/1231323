@@ -463,7 +463,7 @@
       const game = this.opts.player.game;
       const shareAll = !(game && game.s && game.s.settings && game.s.settings.expShare === false);
       const evYield = Dex.mon(foeBt.basePid).e;
-      const mult = this.kind === 'trainer' ? 1 : 1;
+      const mult = (this.opts.cheats || {}).expMult || 1;
       for (const m of me.team) {
         if (m.egg || m.hp <= 0 || m.lvl >= 100 && !set.has(m.uid)) continue;
         const part = set.has(m.uid);
@@ -1753,6 +1753,7 @@
     // Applies one hit; returns damage dealt.
     applyHit(bt, target, mv, dmg, res) {
       if (dmg <= 0) return 0;
+      if ((this.opts.cheats || {}).ohko && bt.side.id === 0 && target.side.id === 1) dmg = Math.max(dmg, target.mon.hp + (target.v.sub || 0));
       this.ev({ t: 'anim', side: target.side.id, kind: 'hit', eff: res.eff });
       // Substitute
       if (target.v.sub && !(mv.fl || []).includes('sound') && bt.ability() !== 'infiltrator') {
@@ -2204,7 +2205,7 @@
       this.msg((this.opts.player.name || 'Ty') + ' rzuca ' + it.n + '!');
       if (this.kind !== 'wild') { this.msg('Trener blokuje Poké Balla! Nie wolno kraść cudzych Pokémonów!'); return; }
       if (this.opts.foe.noCatch) { this.msg('Nie da się złapać tego Pokémona!'); return; }
-      const r = PW.Catch.attempt(foe, me, it, this);
+      const r = (this.opts.cheats || {}).catchAll ? { ok: true, shakes: 3, crit: false } : PW.Catch.attempt(foe, me, it, this);
       this.ev({ t: 'ball', item: it.k, shakes: r.shakes, ok: r.ok, crit: r.crit });
       if (r.crit) this.msg('Krytyczny rzut!');
       if (r.ok) {

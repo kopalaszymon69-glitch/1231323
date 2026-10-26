@@ -51,6 +51,23 @@ Grafiki Pokémonów, przedmiotów i trenerów są pobierane z PokeAPI Sprites i 
 - **Trenerzy na trasach** mają poziomy dopasowane do etapu gry, na którym jest dana lokacja. Przed walką widać ich drużynę i można odejść.
 - **Po grze**: skalowanie trenerów w regionach zaczętych po zdobyciu tytułu Mistrza, Battle Factory, zadania dnia, osiągnięcia, Hall of Fame i punkty akcji (można je wyłączyć).
 
+## Cheaty
+
+W **Opcjach** włączasz „🛠️ Cheaty”. Pojawia się wtedy ekran z:
+
+- **konsolą komend** (otwiera się też klawiszem `). Najważniejsze komendy:
+  - `item rare candy 10`, `tm all`, `pakiet kule` – przedmioty,
+  - `pokemon garchomp 50 shiny jolly max` – nowy Pokémon,
+  - `iv 1 max`, `ev 1 0 252 0 0 4 252`, `natura 1 adamant`, `ruch 1 2 earthquake` – zmiany Pokémona,
+  - `kasa 999999`, `mistrz kanto`, `tp johto goldenrod` – pieniądze, tytuły, teleport,
+  - `czas noc`, `pogoda deszcz` – pora dnia i pogoda.
+
+  Pełną listę pokazuje komenda `pomoc`.
+- **edytorem Pokémonów**: gatunek i forma, poziom, natura, zdolność, IV, EV, ruchy, trzymany przedmiot, typ Tera, shiny i przyjaźń,
+- **przełącznikami**: pewne łapanie, same shiny, nokaut jednym ciosem, wyłączenie dzikich Pokémonów lub trenerów, mnożnik EXP.
+
+Zapis, w którym użyto cheatów, jest oznaczony na Karcie Trenera.
+
 ## Struktura projektu
 
 | Ścieżka | Zawartość |

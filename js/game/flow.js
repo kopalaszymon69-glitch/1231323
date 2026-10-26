@@ -34,7 +34,7 @@
       const b = new PW.Battle({
         kind: spec.kind,
         player: { name: s.player.name, team: party, flags, game: spec.playerTeam ? null : Game() },
-        foe, env,
+        foe, env, cheats: spec.playerTeam ? {} : PW.Cheats.flags(),
       });
       b.spec = spec;
       return b;

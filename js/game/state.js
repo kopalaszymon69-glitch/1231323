@@ -9,7 +9,7 @@
 
   const DEFAULT_SETTINGS = {
     ap: true, anim: true, cries: false, textSpeed: 2, expShare: true, scaling: true, gba: 'none', radio: 'off',
-    autosave: true, confirmRun: false, nicknames: true, battleSpeed: 1,
+    autosave: true, confirmRun: false, nicknames: true, battleSpeed: 1, cheats: false,
   };
 
   function emptyRegion() {

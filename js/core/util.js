@@ -42,6 +42,9 @@
     },
     // Real-clock time of day (HGSS/DPPt split): morning 4-10, day 10-20, night 20-4.
     timeOfDay(d) {
+      // The cheat console can fix the time of day.
+      const ch = !d && G.PW && G.PW.Game && G.PW.Game.s && G.PW.Game.s.settings.cheats && G.PW.Game.s.cheats;
+      if (ch && ch.time) return ch.time;
       const h = (d || new Date()).getHours();
       if (h >= 4 && h < 10) return 'morning';
       if (h >= 10 && h < 20) return 'day';
