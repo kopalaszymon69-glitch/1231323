@@ -1,0 +1,1583 @@
+<title>Patogen Zero</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ===========================================================
+   PATOGEN ZERO — stylizowana konsola laboratorium (single dark)
+   Paleta: toksyczna zieleń (patogen), czerwień (zgony),
+           błękit (badania/lek), bursztyn (ostrzeżenia)
+   Typografia: Chakra Petch (nagłówki/liczby) + IBM Plex Sans (tekst)
+   Układ: aplikacja pełnoekranowa — nagłówek / mapa / pasek zakładek,
+          panele jako wysuwane arkusze (overlay)
+   =========================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root{
+  color-scheme: dark;
+  --bg:#070b11;
+  --bg2:#0b1119;
+  --panel:#121a25;
+  --panel2:#18222f;
+  --line:#243344;
+  --line2:#31465c;
+  --fg:#e7eef6;
+  --muted:#8597ab;
+  --muted2:#5f7187;
+  --acc:#45e0a0;        /* patogen / zieleń */
+  --acc-dim:#2a9c6f;
+  --red:#ff5d6c;        /* zgony */
+  --red-dim:#a83744;
+  --blue:#5ab6ff;       /* lek / badania */
+  --amber:#ffc24d;      /* ostrzeżenia */
+  --violet:#b98cff;
+  --disp:'Chakra Petch',system-ui,sans-serif;
+  --body:'IBM Plex Sans',system-ui,sans-serif;
+  --sat:max(16px, env(safe-area-inset-left, 0px));
+  --sar:max(16px, env(safe-area-inset-right, 0px));
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:
+    radial-gradient(1200px 700px at 70% -10%, #0e2033 0%, transparent 60%),
+    radial-gradient(900px 600px at 10% 110%, #0c1a14 0%, transparent 55%),
+    var(--bg);
+  color:var(--fg);font-family:var(--body);
+  overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;
+}
+button{font-family:inherit;color:inherit;cursor:pointer}
+h1,h2,h3,h4{font-family:var(--disp);font-weight:600;margin:0;text-wrap:balance}
+.num{font-family:var(--disp);font-variant-numeric:tabular-nums}
+.mono{font-variant-numeric:tabular-nums}
+
+#app{position:relative;height:100%;width:100%;max-width:720px;margin:0 auto;display:flex;flex-direction:column;overflow:hidden}
+
+/* ---------- Ekrany pełne (menu / wybory / koniec) ---------- */
+.screen{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;overflow-y:auto;overflow-x:hidden;
+  padding:calc(env(safe-area-inset-top,0px) + 18px) var(--sar) calc(env(safe-area-inset-bottom,0px) + 18px) var(--sat);
+  background:
+    radial-gradient(900px 600px at 50% -5%, #0f2336 0%, transparent 60%), var(--bg);
+  -webkit-overflow-scrolling:touch}
+.screen.hide{display:none}
+.wrap{width:100%;max-width:560px;margin:0 auto}
+
+.brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin:18px 0 6px}
+.logo{width:74px;height:74px;position:relative;display:grid;place-items:center}
+.logo svg{width:100%;height:100%;filter:drop-shadow(0 0 16px rgba(69,224,160,.45))}
+.title{font-size:clamp(30px,9vw,46px);letter-spacing:1px;line-height:.95;text-align:center}
+.title .lo{color:var(--acc)}
+.subtitle{color:var(--muted);font-size:13px;letter-spacing:3px;text-transform:uppercase;text-align:center}
+
+.card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:16px;padding:16px;margin:12px 0}
+.card h3{font-size:16px;margin-bottom:8px;color:var(--fg)}
+.lead{color:var(--muted);font-size:14px;line-height:1.55}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;
+  padding:15px 16px;border-radius:12px;border:1px solid var(--acc-dim);
+  background:linear-gradient(180deg,rgba(69,224,160,.16),rgba(69,224,160,.05));
+  color:var(--acc);font-family:var(--disp);font-weight:600;font-size:17px;letter-spacing:.5px;
+  transition:transform .08s ease, background .15s}
+.btn:active{transform:translateY(1px) scale(.995)}
+.btn.sec{border-color:var(--line2);background:var(--panel2);color:var(--fg)}
+.btn.ghost{border-color:var(--line);background:transparent;color:var(--muted);font-weight:500;font-size:15px}
+.btn.sm{width:auto;padding:9px 14px;font-size:14px;border-radius:10px}
+.btn.danger{border-color:var(--red-dim);color:var(--red);background:linear-gradient(180deg,rgba(255,93,108,.14),rgba(255,93,108,.04))}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap}
+.btnrow .btn{flex:1;min-width:120px}
+
+.steps{display:flex;gap:6px;justify-content:center;margin:4px 0 2px}
+.steps .dot{width:26px;height:4px;border-radius:2px;background:var(--line)}
+.steps .dot.on{background:var(--acc)}
+.sechead{display:flex;align-items:center;gap:10px;margin:8px 0 4px}
+.sechead .k{font-family:var(--disp);color:var(--acc);font-size:13px;letter-spacing:2px}
+.sechead h2{font-size:21px}
+
+/* siatka wyborów (patogen / gen / region) */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.opt{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:13px;display:flex;flex-direction:column;gap:6px;transition:border-color .15s, background .15s;color:var(--fg)}
+.opt .ic{font-size:26px;line-height:1}
+.opt .nm{font-family:var(--disp);font-weight:600;font-size:15px}
+.opt .ds{color:var(--muted);font-size:11.5px;line-height:1.4}
+.opt .tag{position:absolute;top:10px;right:10px;font-size:10px;font-family:var(--disp);padding:2px 7px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+.opt.sel{border-color:var(--acc);background:linear-gradient(180deg,rgba(69,224,160,.12),var(--panel))}
+.opt.sel::after{content:'✓';position:absolute;bottom:10px;right:12px;color:var(--acc);font-weight:700}
+.opt .diff{display:inline-flex;gap:2px}
+.opt .diff i{width:5px;height:12px;border-radius:1px;background:var(--line2);display:inline-block}
+.opt .diff i.on{background:var(--amber)}
+.opt.lock{opacity:.5}
+
+.diffrow{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+
+/* ---------- Nagłówek gry ---------- */
+#hud{flex:0 0 auto;z-index:20;position:relative;
+  padding:calc(env(safe-area-inset-top,0px) + 8px) var(--sar) 8px var(--sat);
+  background:linear-gradient(180deg,rgba(9,14,21,.96),rgba(9,14,21,.78));border-bottom:1px solid var(--line);
+  backdrop-filter:blur(6px)}
+#hud .row1{display:flex;align-items:center;gap:8px}
+.pname{display:flex;flex-direction:column;min-width:0;flex:1}
+.pname .n{font-family:var(--disp);font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pname .t{font-size:11px;color:var(--muted)}
+.pe{display:flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--acc-dim);border-radius:999px;padding:5px 11px}
+.pe .dnaic{width:14px;height:14px}
+.pe b{font-family:var(--disp);font-size:16px;color:var(--acc)}
+.speedbox{display:flex;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px}
+.speedbox button{width:30px;height:28px;border:0;background:transparent;border-radius:7px;color:var(--muted);font-family:var(--disp);font-size:13px;display:grid;place-items:center}
+.speedbox button.on{background:var(--acc);color:#04120b}
+.speedbox button.pause.on{background:var(--amber);color:#1a1200}
+
+#hud .row2{display:flex;align-items:center;gap:10px;margin-top:7px}
+.bars{flex:1;display:flex;flex-direction:column;gap:5px}
+.barline{display:flex;align-items:center;gap:7px;font-size:10.5px;color:var(--muted)}
+.barline .lab{width:52px;flex:0 0 auto;font-family:var(--disp);letter-spacing:.5px}
+.bar{flex:1;height:7px;border-radius:4px;background:var(--panel2);overflow:hidden;position:relative}
+.bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;transition:width .3s}
+.bar.inf>i{background:linear-gradient(90deg,#c58b2a,var(--amber))}
+.bar.cure>i{background:linear-gradient(90deg,#2d6ea8,var(--blue))}
+.barline .val{width:44px;text-align:right;font-family:var(--disp);color:var(--fg);font-size:11px}
+.day{font-family:var(--disp);text-align:right;font-size:12px;color:var(--muted);line-height:1.25}
+.day b{display:block;color:var(--fg);font-size:15px}
+
+/* ---------- Mapa ---------- */
+#mapwrap{position:relative;flex:1 1 auto;min-height:0;overflow:hidden}
+#map{display:block;width:100%;height:100%;touch-action:manipulation}
+.maphint{position:absolute;left:0;right:0;bottom:8px;text-align:center;color:var(--muted2);font-size:11px;pointer-events:none}
+.statchips{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:6px;pointer-events:none;flex-wrap:wrap}
+.chip{display:flex;flex-direction:column;background:rgba(10,16,24,.82);border:1px solid var(--line);border-radius:10px;padding:5px 9px;backdrop-filter:blur(4px)}
+.chip .c-l{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted2)}
+.chip .c-v{font-family:var(--disp);font-size:14px;line-height:1.1}
+.chip.inf .c-v{color:var(--amber)}
+.chip.dead .c-v{color:var(--red)}
+.chip.alive .c-v{color:var(--acc)}
+
+/* ---------- Pasek wiadomości ---------- */
+#ticker{flex:0 0 auto;height:26px;overflow:hidden;background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);display:flex;align-items:center}
+#ticker .tk-ic{flex:0 0 auto;padding:0 8px;color:var(--red);font-size:11px;font-family:var(--disp);letter-spacing:1px;border-right:1px solid var(--line);height:100%;display:flex;align-items:center;background:var(--panel)}
+#ticker .tk-track{white-space:nowrap;padding-left:100%;animation:tick 26s linear infinite;font-size:12px;color:var(--muted)}
+#ticker .tk-track span{margin-right:42px}
+#ticker .tk-track b{color:var(--fg)}
+@keyframes tick{to{transform:translateX(-100%)}}
+
+/* ---------- Pasek zakładek ---------- */
+#tabs{flex:0 0 auto;position:relative;z-index:38;display:flex;background:linear-gradient(0deg,rgba(9,14,21,.99),rgba(9,14,21,.94));border-top:1px solid var(--line2);
+  padding:6px var(--sar) calc(env(safe-area-inset-bottom,0px) + 6px) var(--sat)}
+#tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;background:transparent;border:0;color:var(--muted2);padding:5px 2px;border-radius:10px;position:relative}
+#tabs button .ti{font-size:19px;line-height:1}
+#tabs button .tl{font-size:9.5px;font-family:var(--disp);letter-spacing:.3px}
+#tabs button.on{color:var(--acc)}
+#tabs button.on .ti{filter:drop-shadow(0 0 6px rgba(69,224,160,.5))}
+#tabs button .badge{position:absolute;top:0;right:22%;min-width:15px;height:15px;padding:0 3px;border-radius:999px;background:var(--acc);color:#04120b;font-family:var(--disp);font-size:9px;display:grid;place-items:center;font-weight:700}
+#tabs button .badge.warn{background:var(--amber)}
+
+/* ---------- Arkusz / panel ---------- */
+#sheet{position:absolute;left:0;right:0;bottom:0;z-index:30;max-height:72%;display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--panel),var(--bg2));border-top:1px solid var(--line2);border-radius:18px 18px 0 0;
+  box-shadow:0 -18px 40px rgba(0,0,0,.5);transform:translateY(110%);transition:transform .26s cubic-bezier(.3,.9,.3,1);
+  padding-bottom:calc(env(safe-area-inset-bottom,0px))}
+#sheet.open{transform:translateY(0)}
+.sh-head{display:flex;align-items:center;gap:10px;padding:12px var(--sar) 10px var(--sat);border-bottom:1px solid var(--line)}
+.sh-grip{position:absolute;top:6px;left:50%;transform:translateX(-50%);width:38px;height:4px;border-radius:2px;background:var(--line2)}
+.sh-head h3{flex:1;font-size:17px}
+.sh-head .close{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:16px}
+.sh-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px var(--sar) 88px var(--sat)}
+.treehint{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.45}
+
+/* węzeł ulepszenia */
+.node{display:flex;gap:11px;align-items:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:9px;position:relative}
+.node.bought{border-color:var(--acc-dim);background:linear-gradient(180deg,rgba(69,224,160,.08),var(--panel2))}
+.node.locked{opacity:.52}
+.node.mut{border-color:var(--violet)}
+.node .nic{width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;font-size:19px;background:var(--bg2);border:1px solid var(--line)}
+.node.bought .nic{background:rgba(69,224,160,.14);border-color:var(--acc-dim)}
+.node .ninf{flex:1;min-width:0}
+.node .nt{font-family:var(--disp);font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.node .nd{font-size:11.5px;color:var(--muted);line-height:1.4;margin-top:2px}
+.node .eff{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.node .eff .e{font-size:10px;font-family:var(--disp);padding:1px 6px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+.node .eff .e.g{color:var(--acc);border-color:var(--acc-dim)}
+.node .eff .e.r{color:var(--red);border-color:var(--red-dim)}
+.node .eff .e.b{color:var(--blue);border-color:#2d6ea8}
+.node .eff .e.a{color:var(--amber);border-color:#8a6a1f}
+.node .buy{flex:0 0 auto;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:62px}
+.node .cost{font-family:var(--disp);font-size:13px;text-align:center;color:var(--acc);white-space:nowrap}
+.node .bbtn{border:1px solid var(--acc-dim);background:rgba(69,224,160,.12);color:var(--acc);border-radius:9px;padding:7px 8px;font-family:var(--disp);font-size:12px;font-weight:600}
+.node .bbtn[disabled]{opacity:.4;border-color:var(--line);color:var(--muted);background:var(--panel)}
+.node.bought .bbtn.devolve{border-color:var(--red-dim);color:var(--red);background:transparent}
+.node .pill{font-size:9px;font-family:var(--disp);padding:1px 6px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+.node .pill.mut{color:var(--violet);border-color:var(--violet)}
+.node .pill.on{color:var(--acc);border-color:var(--acc-dim)}
+
+/* World / stats list */
+.wstat{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.wstat .box{flex:1;min-width:92px;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.wstat .box .l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2)}
+.wstat .box .v{font-family:var(--disp);font-size:19px;margin-top:2px}
+.wstat .box.r .v{color:var(--red)}.wstat .box.a .v{color:var(--amber)}.wstat .box.g .v{color:var(--acc)}.wstat .box.b .v{color:var(--blue)}
+#chart{width:100%;height:120px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.rrow{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line)}
+.rrow .rdot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+.rrow .rn{flex:1;min-width:0}
+.rrow .rn .a{font-family:var(--disp);font-size:13px}
+.rrow .rn .b{font-size:10.5px;color:var(--muted2)}
+.rrow .rv{text-align:right;font-family:var(--disp);font-size:12px}
+.rrow .rv .d{color:var(--red)}.rrow .rv .i{color:var(--amber)}
+.rrow .rbar{width:60px;height:6px;border-radius:3px;background:var(--panel2);overflow:hidden;position:relative;flex:0 0 auto}
+.rrow .rbar>i{position:absolute;left:0;top:0;bottom:0;background:var(--amber)}
+.rrow .rbar>b{position:absolute;left:0;top:0;bottom:0;background:var(--red)}
+
+/* News list */
+.nitem{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:11px;margin-bottom:8px;background:var(--panel2)}
+.nitem .ni{font-size:18px;flex:0 0 auto}
+.nitem .nx{flex:1;min-width:0}
+.nitem .nx .h{font-family:var(--disp);font-size:13px;display:flex;justify-content:space-between;gap:8px}
+.nitem .nx .h .dd{color:var(--muted2);font-size:11px;font-weight:400}
+.nitem .nx .p{font-size:12px;color:var(--muted);line-height:1.45;margin-top:3px}
+.nitem.good{border-color:var(--acc-dim)} .nitem.bad{border-color:var(--red-dim)} .nitem.warn{border-color:#8a6a1f}
+
+/* Popup region */
+#rpop{position:absolute;z-index:35;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line2);border-radius:14px;padding:12px;width:230px;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none}
+#rpop .rh{font-family:var(--disp);font-weight:600;font-size:15px;display:flex;align-items:center;gap:7px}
+#rpop .rtags{display:flex;flex-wrap:wrap;gap:4px;margin:7px 0}
+#rpop .rtags .tg{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid var(--line2);color:var(--muted)}
+#rpop .rgrid{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px}
+#rpop .rgrid .k{color:var(--muted2)} #rpop .rgrid .v{font-family:var(--disp);text-align:right}
+#rpop .rmeters{margin-top:8px;display:flex;flex-direction:column;gap:4px}
+#rpop .close2{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--panel2);color:var(--muted);font-size:13px}
+
+/* toast / popup zdarzenia */
+#event{position:absolute;inset:0;z-index:45;display:none;align-items:center;justify-content:center;padding:var(--sar);background:rgba(4,8,13,.72);backdrop-filter:blur(3px)}
+#event .ebox{width:100%;max-width:400px;background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line2);border-radius:18px;overflow:hidden}
+#event .etop{padding:16px;display:flex;gap:12px;align-items:flex-start;border-bottom:1px solid var(--line)}
+#event .etop .eic{font-size:30px}
+#event .etop h3{font-size:18px}
+#event .etop .ek{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--amber);font-family:var(--disp)}
+#event .ep{padding:14px 16px;font-size:13.5px;line-height:1.55;color:var(--muted)}
+#event .eact{padding:0 16px 16px;display:flex;flex-direction:column;gap:8px}
+
+#toasts{position:absolute;top:calc(env(safe-area-inset-top,0px) + 96px);left:0;right:0;z-index:38;display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;padding:0 var(--sar)}
+.toast{background:rgba(12,19,28,.95);border:1px solid var(--line2);border-radius:999px;padding:7px 14px;font-size:12.5px;font-family:var(--disp);box-shadow:0 6px 18px rgba(0,0,0,.4);animation:tpop 3.4s ease forwards;max-width:100%}
+.toast.g{border-color:var(--acc-dim);color:var(--acc)} .toast.r{border-color:var(--red-dim);color:var(--red)} .toast.a{border-color:#8a6a1f;color:var(--amber)} .toast.b{border-color:#2d6ea8;color:var(--blue)}
+@keyframes tpop{0%{opacity:0;transform:translateY(-8px)}10%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}
+
+/* Koniec gry */
+#endfx{display:flex;flex-direction:column;align-items:center;gap:6px}
+.grade{font-family:var(--disp);font-size:68px;line-height:1;filter:drop-shadow(0 0 18px currentColor)}
+.endstats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:14px 0}
+.endstats .s{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px}
+.endstats .s .l{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted2)}
+.endstats .s .v{font-family:var(--disp);font-size:20px;margin-top:3px}
+.ach{display:flex;gap:8px;align-items:center;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:9px 11px;margin-bottom:7px}
+.ach .ai{font-size:20px}.ach.get .ai{filter:drop-shadow(0 0 8px var(--amber))}
+.ach .at{font-family:var(--disp);font-size:13px}.ach .ad{font-size:11px;color:var(--muted)}
+.ach.locked{opacity:.45}
+
+hr.sep{border:0;border-top:1px solid var(--line);margin:14px 0}
+.small{font-size:11.5px;color:var(--muted2);line-height:1.5}
+.kbd{font-family:var(--disp);background:var(--panel2);border:1px solid var(--line2);border-radius:6px;padding:1px 6px;font-size:11px;color:var(--fg)}
+a.lnk{color:var(--blue);text-decoration:none}
+.footerline{text-align:center;color:var(--muted2);font-size:11px;margin-top:10px}
+</style>
+
+<div id="app">
+
+  <!-- ===================== MENU ===================== -->
+  <section class="screen" id="scrMenu">
+    <div class="wrap">
+      <div class="brand">
+        <div class="logo">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="50" cy="50" r="46" fill="none" stroke="#45e0a0" stroke-width="3" opacity=".35"/>
+            <g fill="#45e0a0">
+              <circle cx="50" cy="50" r="12"/>
+              <g stroke="#45e0a0" stroke-width="4" stroke-linecap="round">
+                <line x1="50" y1="38" x2="50" y2="14"/><line x1="50" y1="62" x2="50" y2="86"/>
+                <line x1="38" y1="50" x2="14" y2="50"/><line x1="62" y1="50" x2="86" y2="50"/>
+                <line x1="41" y1="41" x2="24" y2="24"/><line x1="59" y1="59" x2="76" y2="76"/>
+                <line x1="59" y1="41" x2="76" y2="24"/><line x1="41" y1="59" x2="24" y2="76"/>
+              </g>
+              <circle cx="50" cy="12" r="6"/><circle cx="50" cy="88" r="6"/><circle cx="12" cy="50" r="6"/><circle cx="88" cy="50" r="6"/>
+              <circle cx="22" cy="22" r="5"/><circle cx="78" cy="78" r="5"/><circle cx="78" cy="22" r="5"/><circle cx="22" cy="78" r="5"/>
+            </g>
+          </svg>
+        </div>
+        <h1 class="title">PATOGEN <span class="lo">ZERO</span></h1>
+        <div class="subtitle">Symulator Pandemii · Edycja Rozszerzona</div>
+      </div>
+
+      <div class="card">
+        <p class="lead">Zaprojektuj patogen, wypuść pacjenta zero i rozprzestrzeń go po całym świecie, zanim ludzkość opracuje lekarstwo. Rozwijaj transmisję, objawy i odporności, zarządzaj mutacjami i reakcją rządów. Czy zarazisz wszystkie 8,6 miliarda ludzi?</p>
+      </div>
+
+      <div class="btnrow" style="flex-direction:column">
+        <button class="btn" id="btnNew">▶ NOWA GRA</button>
+        <button class="btn sec" id="btnContinue">↺ Kontynuuj</button>
+        <div class="btnrow">
+          <button class="btn ghost" id="btnHow">Jak grać</button>
+          <button class="btn ghost" id="btnAch">Osiągnięcia</button>
+        </div>
+      </div>
+      <p class="footerline">Fikcyjna gra strategiczna. Mechanika całkowicie abstrakcyjna.</p>
+    </div>
+  </section>
+
+  <!-- ===================== KONFIGURACJA ===================== -->
+  <section class="screen hide" id="scrSetup">
+    <div class="wrap">
+      <div class="steps"><i class="dot" data-s="0"></i><i class="dot" data-s="1"></i><i class="dot" data-s="2"></i><i class="dot" data-s="3"></i></div>
+
+      <!-- krok 0: trudność -->
+      <div class="step" data-step="0">
+        <div class="sechead"><span class="k">KROK 1/4</span><h2>Poziom trudności</h2></div>
+        <p class="lead" style="margin-bottom:10px">Wyższy poziom = szybsze badania nad lekiem, czujniejszy świat i mniej punktów na start.</p>
+        <div class="diffrow" id="diffGrid"></div>
+      </div>
+
+      <!-- krok 1: patogen -->
+      <div class="step" data-step="1" style="display:none">
+        <div class="sechead"><span class="k">KROK 2/4</span><h2>Typ patogenu</h2></div>
+        <p class="lead" style="margin-bottom:10px">Każdy patogen ma inny styl gry, własną zdolność specjalną i tempo mutacji.</p>
+        <div class="grid" id="pathGrid"></div>
+      </div>
+
+      <!-- krok 2: geny -->
+      <div class="step" data-step="2" style="display:none">
+        <div class="sechead"><span class="k">KROK 3/4</span><h2>Kod genetyczny</h2></div>
+        <p class="lead" style="margin-bottom:10px">Wybierz do <b id="geneMax">3</b> modyfikatorów (<span id="geneCount">0</span>/3). Nie da się ich później zmienić.</p>
+        <div class="grid" id="geneGrid"></div>
+      </div>
+
+      <!-- krok 3: region -->
+      <div class="step" data-step="3" style="display:none">
+        <div class="sechead"><span class="k">KROK 4/4</span><h2>Pacjent zero</h2></div>
+        <p class="lead" style="margin-bottom:10px">Wybierz region, w którym pojawi się pierwszy przypadek. Dotknij punktu na mapie lub wybierz z listy.</p>
+        <canvas id="pickMap" style="width:100%;height:220px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;touch-action:manipulation"></canvas>
+        <div id="pickName" class="lead" style="text-align:center;margin:8px 0;font-family:var(--disp);color:var(--acc)">— wybierz region —</div>
+        <select id="pickSel" style="width:100%;padding:12px;background:var(--panel2);color:var(--fg);border:1px solid var(--line);border-radius:10px;font-family:var(--disp);font-size:14px"></select>
+      </div>
+
+      <div class="btnrow" style="margin-top:16px">
+        <button class="btn ghost" id="btnBack" style="flex:0 0 40%">← Wstecz</button>
+        <button class="btn" id="btnNext">Dalej →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GRA ===================== -->
+  <div id="hud" class="hide">
+    <div class="row1">
+      <div class="pname"><span class="n" id="hudName">—</span><span class="t" id="hudType">—</span></div>
+      <div class="pe"><svg class="dnaic" viewBox="0 0 24 24" fill="none" stroke="#45e0a0" stroke-width="2"><path d="M7 4c0 4 10 4 10 10s-10 6-10 10M17 4c0 4-10 4-10 10s10 6 10 10"/></svg><b id="hudPE">0</b></div>
+      <div class="speedbox" id="speedBox">
+        <button data-sp="0" class="pause" title="Pauza">❚❚</button>
+        <button data-sp="1" class="on">▶</button>
+        <button data-sp="2">▶▶</button>
+        <button data-sp="3">⏩</button>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="bars">
+        <div class="barline"><span class="lab">ZAKAŻ.</span><div class="bar inf"><i id="barInf" style="width:0%"></i></div><span class="val" id="valInf">0%</span></div>
+        <div class="barline"><span class="lab">LEK</span><div class="bar cure"><i id="barCure" style="width:0%"></i></div><span class="val" id="valCure">0%</span></div>
+      </div>
+      <div class="day"><span>DZIEŃ</span><b id="hudDay">0</b></div>
+    </div>
+  </div>
+
+  <div id="mapwrap" class="hide">
+    <canvas id="map"></canvas>
+    <div class="statchips">
+      <div class="chip alive"><span class="c-l">Zdrowi</span><span class="c-v num" id="chAlive">0</span></div>
+      <div class="chip inf"><span class="c-l">Zakażeni</span><span class="c-v num" id="chInf">0</span></div>
+      <div class="chip dead"><span class="c-l">Zgony</span><span class="c-v num" id="chDead">0</span></div>
+    </div>
+    <div class="maphint">Dotknij regionu, by zobaczyć szczegóły · Łap bąbelki, by zdobyć DNA</div>
+    <div id="rpop"></div>
+  </div>
+
+  <div id="ticker" class="hide"><div class="tk-ic">◉ NA ŻYWO</div><div class="tk-track" id="tkTrack"></div></div>
+
+  <nav id="tabs" class="hide">
+    <button data-tab="trans"><span class="ti">🫁</span><span class="tl">Transmisja</span><span class="badge" data-badge="trans" hidden></span></button>
+    <button data-tab="symp"><span class="ti">🧬</span><span class="tl">Objawy</span><span class="badge" data-badge="symp" hidden></span></button>
+    <button data-tab="res"><span class="ti">🛡️</span><span class="tl">Odporność</span><span class="badge" data-badge="res" hidden></span></button>
+    <button data-tab="spec"><span class="ti">⚗️</span><span class="tl">Specjalne</span><span class="badge" data-badge="spec" hidden></span></button>
+    <button data-tab="world"><span class="ti">🌍</span><span class="tl">Świat</span></button>
+    <button data-tab="news"><span class="ti">📰</span><span class="tl">Wieści</span><span class="badge warn" data-badge="news" hidden></span></button>
+  </nav>
+
+  <!-- arkusz panelu -->
+  <div id="sheet">
+    <div class="sh-grip"></div>
+    <div class="sh-head"><h3 id="shTitle">—</h3><button class="close" id="shClose">✕</button></div>
+    <div class="sh-body" id="shBody"></div>
+  </div>
+
+  <!-- popup zdarzenia -->
+  <div id="event"><div class="ebox">
+    <div class="etop"><div class="eic" id="evIc">⚠️</div><div><div class="ek" id="evKind">ZDARZENIE</div><h3 id="evTitle">—</h3></div></div>
+    <div class="ep" id="evText">—</div>
+    <div class="eact" id="evAct"></div>
+  </div></div>
+
+  <div id="toasts"></div>
+
+  <!-- ===================== KONIEC ===================== -->
+  <section class="screen hide" id="scrEnd">
+    <div class="wrap">
+      <div id="endfx">
+        <div class="grade" id="endGrade">A</div>
+        <h1 class="title" id="endTitle" style="font-size:30px">—</h1>
+        <p class="lead" id="endSub" style="text-align:center"></p>
+      </div>
+      <div class="endstats" id="endStats"></div>
+      <div class="card"><h3>Osiągnięcia tej rozgrywki</h3><div id="endAch"></div></div>
+      <div class="btnrow">
+        <button class="btn" id="btnAgain">▶ Zagraj ponownie</button>
+        <button class="btn sec" id="btnMenu2">Menu</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== POMOC / OSIĄGNIĘCIA (overlay) ===================== -->
+  <section class="screen hide" id="scrInfo">
+    <div class="wrap">
+      <div class="sechead"><span class="k">PATOGEN ZERO</span><h2 id="infoTitle">Jak grać</h2></div>
+      <div id="infoBody"></div>
+      <button class="btn sec" id="btnInfoBack" style="margin-top:14px">← Powrót</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   PATOGEN ZERO — silnik gry
+   ============================================================ */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+/* ---------- liczby ---------- */
+function fmt(n){
+  n=Math.max(0,Math.round(n));
+  if(n>=1e9)return (n/1e9).toFixed(n>=1e10?1:2)+' mld';
+  if(n>=1e6)return (n/1e6).toFixed(n>=1e7?1:2)+' mln';
+  if(n>=1e3)return (n/1e3).toFixed(n>=1e4?0:1)+' tys';
+  return ''+n;
+}
+function pct(n){return (n*100).toFixed(n>=.1?0:1)+'%';}
+
+/* ====================== DANE: KONFIG ====================== */
+const CONFIG={
+  spreadBase:0.15,      // bazowa szansa przeniesienia między regionami
+  infBase:0.055,        // bazowy mnożnik wzrostu zakażeń
+  infPerPoint:0.05,     // ile dodaje każdy punkt zaraźliwości
+  lethPerPoint:0.0062,  // ile dodaje każdy punkt śmiertelności
+  peBase:0.5,           // bazowy przychód DNA / dzień
+  pePerInfFrac:2.2,     // DNA zależne od % zakażonej populacji / dzień
+  bubbleEvery:[2600,5200], // ms między bąbelkami
+  mutEveryDays:[16,36], // co ile dni szansa na mutację (modyfikowana)
+};
+
+/* ====================== POZIOMY TRUDNOŚCI ====================== */
+const DIFFS=[
+  {id:'latwy',nm:'Łagodny',ds:'Świat reaguje wolno. Dużo DNA na start.',dots:1,cure:0.55,aware:0.7,startPE:30,cure0:0,react:0.7},
+  {id:'normalny',nm:'Normalny',ds:'Zrównoważone wyzwanie.',dots:2,cure:1,aware:1,startPE:14,cure0:0,react:1},
+  {id:'trudny',nm:'Trudny',ds:'Szybkie badania, czujne rządy.',dots:3,cure:1.5,aware:1.3,startPE:6,cure0:0,react:1.3},
+  {id:'brutalny',nm:'Brutalny',ds:'Lek rusza od razu. Bezlitosny świat.',dots:4,cure:2.3,aware:1.65,startPE:0,cure0:4,react:1.7},
+];
+
+/* ====================== PATOGENY ====================== */
+const PATHOGENS={
+  wirus:{nm:'Wirus',ic:'🦠',ds:'Szybko mutuje — darmowe objawy, ale trudno ukryć. Wszechstronny, tani.',diff:1,
+    base:{mutRate:2.2,cureResist:1,infMul:1,sevMul:1},special:'spVir'},
+  bakteria:{nm:'Bakteria',ic:'🧫',ds:'Wytrzymała na klimat, powolne badania. Solidny, zrównoważony start.',diff:1,
+    base:{mutRate:1.0,cureResist:1.25,infMul:1,sevMul:1,climate:0.4},special:'spBac'},
+  grzyb:{nm:'Grzyb',ic:'🍄',ds:'Trudno się przenosi, ale „Wyrzut zarodników” zasiewa odległe regiony.',diff:3,
+    base:{mutRate:0.6,cureResist:1.2,infMul:0.72,sevMul:1},special:'spFun'},
+  pasozyt:{nm:'Pasożyt',ic:'🪱',ds:'Niemal niewidoczny — świat długo go ignoruje. Tani kamuflaż.',diff:2,
+    base:{mutRate:0.9,cureResist:1.15,infMul:0.9,sevMul:1,vis:-3},special:'spPar'},
+  prion:{nm:'Prion',ic:'🧩',ds:'Prawie niewykrywalny i niemal niemożliwy do wyleczenia, ale rozsiewa się ślamazarnie.',diff:4,
+    base:{mutRate:0.1,cureResist:2.6,infMul:0.55,sevMul:1,vis:-5},special:'spPri'},
+  nano:{nm:'Nano-Patogen',ic:'⚙️',ds:'Konstrukt inżynieryjny. Lek rusza od startu i świat jest wyczulony. Dla wyjadaczy.',diff:4,
+    base:{mutRate:1.4,cureResist:1,infMul:1.05,sevMul:1,vis:3,cure0:8,aware0:12},special:'spNano'},
+  neuro:{nm:'Neurowirus',ic:'🧠',ds:'Sci-fi: przejmuje nosicieli zamiast ich zabijać. „Kontrola” liczy się jak eliminacja.',diff:3,
+    base:{mutRate:1.3,cureResist:1.1,infMul:1,sevMul:1},special:'spNeuro'},
+  reanim:{nm:'Grzyb-Reanimator',ic:'🧟',ds:'Sci-fi: zmarli mogą wracać jako nosiciele — niemal niemożliwa eradykacja.',diff:3,
+    base:{mutRate:0.8,cureResist:1.3,infMul:0.85,sevMul:1},special:'spReanim'},
+};
+
+/* ====================== GENY (modyfikatory) ====================== */
+const GENES={
+  atp:{nm:'Katalizator ATP',ic:'⚡',ds:'+70% DNA z bąbelków.',e:{bubble:0.7}},
+  metab:{nm:'Przeskok metaboliczny',ic:'🔋',ds:'+0,5 DNA pasywnie co dzień.',e:{peTrickle:0.5}},
+  darwin:{nm:'Darwinista',ic:'🌿',ds:'Mutacje pojawiają się znacznie częściej (darmowe objawy).',e:{mut:1.9}},
+  aero:{nm:'Aerodynamiczny',ic:'💨',ds:'Start z ulepszoną transmisją powietrzną.',e:{startAir:1}},
+  extremo:{nm:'Ekstremofil',ic:'🌡️',ds:'Start z odpornością na zimno i ciepło.',e:{startCold:1,startHeat:1}},
+  stealth:{nm:'Cichy nosiciel',ic:'🌑',ds:'Patogen jest mniej widoczny — świat reaguje wolniej.',e:{vis:-4}},
+  teleo:{nm:'Teleekspresja',ic:'🧪',ds:'Ulepszenia transmisji tańsze o 25%.',e:{transDisc:0.25}},
+  viru:{nm:'Zjadliwość',ic:'☠️',ds:'+1,5 śmiertelności na start, ale większa widoczność.',e:{startLeth:1.5,vis:1.5}},
+};
+
+/* ====================== REGIONY ŚWIATA ======================
+   wealth/density/health: 0-3; airport/port: 0-2; climate: tagi
+   pop w osobach. island: dociera tylko drogą morską/lotniczą
+*/
+const REGIONS=[
+ {id:'na', nm:'Ameryka Płn.', s:'AMP', x:175,y:170, cl:['zimny','umiarkowany'], w:3,d:2,h:3, pop:580e6, ap:2,pt:2,isl:0},
+ {id:'ca', nm:'Ameryka Środk.',s:'AŚR', x:215,y:258, cl:['goracy','wilgotny'], w:1,d:2,h:1, pop:180e6, ap:1,pt:1,isl:0},
+ {id:'sa', nm:'Ameryka Płd.', s:'APŁ', x:290,y:380, cl:['goracy','wilgotny'],w:2,d:2,h:2, pop:430e6, ap:1,pt:2,isl:0},
+ {id:'car',nm:'Karaiby',      s:'KAR', x:300,y:262, cl:['goracy','wilgotny'],w:2,d:2,h:2, pop:45e6,  ap:1,pt:1,isl:1},
+ {id:'gr', nm:'Arktyka',      s:'ARK', x:330,y:88,  cl:['zimny'],            w:2,d:0,h:2, pop:3e6,   ap:1,pt:1,isl:1},
+ {id:'euw',nm:'Europa Zach.', s:'EUZ', x:500,y:175, cl:['umiarkowany'],      w:3,d:3,h:3, pop:420e6, ap:2,pt:2,isl:0},
+ {id:'scn',nm:'Skandynawia',  s:'SKN', x:528,y:118, cl:['zimny'],            w:3,d:1,h:3, pop:30e6,  ap:1,pt:1,isl:0},
+ {id:'eue',nm:'Europa Wsch.', s:'EUW', x:575,y:190, cl:['zimny','umiarkowany'],w:2,d:2,h:2,pop:150e6,ap:1,pt:1,isl:0},
+ {id:'rus',nm:'Rosja/Syberia',s:'RUS', x:715,y:140, cl:['zimny'],            w:2,d:1,h:2, pop:150e6, ap:1,pt:1,isl:0},
+ {id:'naf',nm:'Afryka Płn.',  s:'AFP', x:515,y:262, cl:['suchy','goracy'],   w:1,d:2,h:1, pop:250e6, ap:1,pt:1,isl:0},
+ {id:'ssa',nm:'Afryka Subsah.',s:'AFS',x:545,y:340, cl:['goracy','wilgotny'],w:0,d:2,h:0, pop:1100e6,ap:1,pt:1,isl:0},
+ {id:'saf',nm:'Afryka Płd.',  s:'AFD', x:550,y:415, cl:['umiarkowany','suchy'],w:2,d:1,h:2,pop:70e6, ap:1,pt:1,isl:0},
+ {id:'mea',nm:'Bliski Wschód',s:'BLW', x:615,y:255, cl:['suchy','goracy'],   w:2,d:2,h:2, pop:300e6, ap:1,pt:1,isl:0},
+ {id:'cas',nm:'Azja Centr.',  s:'AZC', x:695,y:210, cl:['suchy','zimny'],    w:1,d:1,h:1, pop:90e6,  ap:0,pt:0,isl:0},
+ {id:'soa',nm:'Azja Płd.',    s:'AZP', x:730,y:290, cl:['goracy','wilgotny'],w:1,d:3,h:1, pop:1900e6,ap:1,pt:1,isl:0},
+ {id:'eaa',nm:'Azja Wsch.',   s:'AZW', x:805,y:225, cl:['umiarkowany'],      w:2,d:3,h:2, pop:1500e6,ap:2,pt:2,isl:0},
+ {id:'jpn',nm:'Japonia/Korea',s:'JPK', x:888,y:220, cl:['umiarkowany'],      w:3,d:3,h:3, pop:180e6, ap:1,pt:2,isl:1},
+ {id:'sea',nm:'Azja Płd-Wsch.',s:'APW',x:825,y:320, cl:['goracy','wilgotny'],w:2,d:3,h:1, pop:680e6, ap:1,pt:2,isl:1},
+ {id:'aus',nm:'Australia',    s:'AUS', x:885,y:420, cl:['suchy','goracy'],   w:3,d:1,h:3, pop:30e6,  ap:1,pt:1,isl:1},
+ {id:'oce',nm:'Oceania',      s:'OCE', x:955,y:388, cl:['goracy','wilgotny'],w:2,d:1,h:2, pop:12e6,  ap:0,pt:1,isl:1},
+];
+const RMAP=Object.fromEntries(REGIONS.map(r=>[r.id,r]));
+
+/* trasy: [a,b,typ]  typ: 'land' | 'sea' | 'air' */
+const ROUTES=(()=>{
+  const L=[
+    ['na','ca','land'],['ca','sa','land'],['euw','eue','land'],['euw','scn','land'],
+    ['eue','rus','land'],['scn','rus','land'],['rus','cas','land'],['rus','eaa','land'],
+    ['naf','ssa','land'],['ssa','saf','land'],['naf','mea','land'],['mea','cas','land'],
+    ['mea','soa','land'],['cas','soa','land'],['cas','eaa','land'],['soa','eaa','land'],
+    ['soa','sea','land'],['eaa','sea','land'],['eue','mea','land'],['euw','naf','land'],
+    // morskie
+    ['euw','na','sea'],['na','gr','sea'],['gr','euw','sea'],['car','ca','sea'],['car','na','sea'],
+    ['car','sa','sea'],['sa','saf','sea'],['saf','aus','sea'],['ssa','mea','sea'],['sea','aus','sea'],
+    ['sea','oce','sea'],['aus','oce','sea'],['jpn','eaa','sea'],['jpn','na','sea'],['euw','car','sea'],
+    ['naf','sa','sea'],['sea','jpn','sea'],
+    // lotnicze (huby)
+    ['na','euw','air'],['na','eaa','air'],['na','jpn','air'],['na','aus','air'],['euw','eaa','air'],
+    ['euw','mea','air'],['euw','rus','air'],['euw','ssa','air'],['euw','sa','air'],['eaa','aus','air'],
+    ['eaa','soa','air'],['mea','soa','air'],['mea','ssa','air'],['na','sa','air'],['jpn','eaa','air'],
+    ['aus','sea','air'],['soa','euw','air'],['eaa','car','air'],
+  ];
+  return L.filter(([a,b])=>RMAP[a]&&RMAP[b]);
+})();
+// sąsiedztwo per region
+const NEIGH={};REGIONS.forEach(r=>NEIGH[r.id]=[]);
+ROUTES.forEach(([a,b,t])=>{NEIGH[a].push({to:b,t});NEIGH[b].push({to:a,t});});
+
+/* ====================== DRZEWKA ULEPSZEŃ ======================
+   tree: trans|symp|res|spec   req: lista id (dowolny spełnia? -> reqAny)
+   e: efekty (sumowane)        p: tylko dla patogenu (opcjonalnie)
+*/
+const UP=[
+ // --- TRANSMISJA ---
+ {id:'t_contact',tree:'trans',nm:'Kontakt bezpośredni',ic:'🤝',cost:1,ds:'Podstawowa droga zakażenia między ludźmi.',e:{inf:0.5}},
+ {id:'t_drop',tree:'trans',nm:'Kropelki',ic:'💧',cost:9,req:['t_contact'],ds:'Zakażenie przez kaszel i mowę.',e:{inf:0.7,air:0.5}},
+ {id:'t_air1',tree:'trans',nm:'Transmisja powietrzna I',ic:'💨',cost:15,req:['t_drop'],ds:'Dłuższe utrzymanie w powietrzu — szybciej w miastach.',e:{inf:0.6,air:1.2,dense:0.4}},
+ {id:'t_air2',tree:'trans',nm:'Transmisja powietrzna II',ic:'🌬️',cost:22,req:['t_air1'],ds:'Aerozole niosą patogen na duże odległości.',e:{inf:0.7,air:1.6,cold:0.3}},
+ {id:'t_wat1',tree:'trans',nm:'Przenoszenie wodne I',ic:'🚰',cost:13,req:['t_contact'],ds:'Skażenie wody pitnej — groźne tam, gdzie słaba sanitacja.',e:{inf:0.5,water:1.2}},
+ {id:'t_wat2',tree:'trans',nm:'Przenoszenie wodne II',ic:'🌊',cost:19,req:['t_wat1'],ds:'Przetrwanie w wodzie morskiej — otwiera szlaki portowe.',e:{inf:0.6,water:1.6,humid:0.3}},
+ {id:'t_blood',tree:'trans',nm:'Przenoszenie przez krew',ic:'🩸',cost:11,req:['t_contact'],ds:'Transfuzje i rany. Synergia z owadami.',e:{inf:0.4,blood:1.2,insect:0.3}},
+ {id:'t_rod1',tree:'trans',nm:'Gryzonie I',ic:'🐀',cost:11,ds:'Szczury roznoszą patogen w biednych, gęstych rejonach.',e:{inf:0.3,rodent:1.2,poor:0.4}},
+ {id:'t_rod2',tree:'trans',nm:'Gryzonie II',ic:'🐁',cost:17,req:['t_rod1'],ds:'Większe populacje gryzoni, dalszy zasięg.',e:{inf:0.4,rodent:1.6}},
+ {id:'t_bird1',tree:'trans',nm:'Ptaki I',ic:'🐦',cost:17,req:['t_air1'],ds:'Ptaki przenoszą zakażenie przez granice.',e:{inf:0.4,bird:1.2,air:0.4}},
+ {id:'t_bird2',tree:'trans',nm:'Ptaki II',ic:'🦅',cost:24,req:['t_bird1'],ds:'Migracje omijają zamknięte lotniska.',e:{inf:0.5,bird:1.7,crossBorder:1}},
+ {id:'t_ins1',tree:'trans',nm:'Owady I',ic:'🦟',cost:13,ds:'Komary — zabójcze w gorącym i wilgotnym klimacie.',e:{inf:0.3,insect:1.3,hot:0.4}},
+ {id:'t_ins2',tree:'trans',nm:'Owady II',ic:'🐜',cost:19,req:['t_ins1'],ds:'Odporne na insektycydy wektory.',e:{inf:0.4,insect:1.7,humid:0.4}},
+ {id:'t_live',tree:'trans',nm:'Zwierzęta gospodarskie',ic:'🐖',cost:15,ds:'Hodowle — ogniska na wsi i w rejonach rolniczych.',e:{inf:0.4,livestock:1.3,poor:0.3}},
+ {id:'t_extr',tree:'trans',nm:'Ekstremofilia',ic:'🧊',cost:22,ds:'Przetrwanie w skrajnych warunkach — mniejsza kara klimatyczna.',e:{cold:0.6,heat:0.6,arid:0.4,humid:0.4}},
+
+ // --- OBJAWY ---
+ {id:'s_cough',tree:'symp',nm:'Kaszel',ic:'😮‍💨',cost:4,ds:'Zwiększa zaraźliwość drogą powietrzną.',e:{inf:0.5,air:0.5,sev:1,vis:1}},
+ {id:'s_sneeze',tree:'symp',nm:'Kichanie',ic:'🤧',cost:6,req:['s_cough'],ds:'Rozpyla patogen na większy obszar.',e:{inf:0.8,air:0.7,sev:1,vis:1}},
+ {id:'s_fever',tree:'symp',nm:'Gorączka',ic:'🤒',cost:5,ds:'Osłabia nosiciela i podnosi zjadliwość.',e:{inf:0.3,sev:2,vis:2,leth:0.3}},
+ {id:'s_rash',tree:'symp',nm:'Wysypka',ic:'🔴',cost:5,ds:'Łagodny, lecz widoczny objaw skórny.',e:{sev:1,vis:2,inf:0.2}},
+ {id:'s_sweat',tree:'symp',nm:'Zlewne poty',ic:'💦',cost:5,req:['s_fever'],ds:'Płyny ustrojowe roznoszą zakażenie.',e:{water:0.5,sev:1,inf:0.2}},
+ {id:'s_vomit',tree:'symp',nm:'Wymioty',ic:'🤮',cost:8,req:['s_fever'],ds:'Silnie zakaża wodę i powierzchnie.',e:{water:0.9,inf:0.4,sev:3,vis:3,leth:0.4}},
+ {id:'s_diar',tree:'symp',nm:'Biegunka',ic:'🚽',cost:8,req:['s_vomit'],ds:'Dramatyczny wektor wodny; odwodnienie.',e:{water:1.2,sev:3,vis:3,leth:0.7}},
+ {id:'s_pneu',tree:'symp',nm:'Zapalenie płuc',ic:'🫁',cost:12,req:['s_cough'],ds:'Poważne uszkodzenie płuc — pierwszy duży skok śmiertelności.',e:{sev:4,leth:1.3,vis:4}},
+ {id:'s_pulm',tree:'symp',nm:'Niewydolność oddechowa',ic:'🆘',cost:16,req:['s_pneu'],ds:'Pacjent przestaje oddychać bez respiratora.',e:{sev:5,leth:2,vis:5}},
+ {id:'s_anem',tree:'symp',nm:'Anemia',ic:'🫥',cost:8,req:['s_fever'],ds:'Niedokrwistość osłabia organizm.',e:{sev:2,leth:0.5,vis:1}},
+ {id:'s_hem',tree:'symp',nm:'Krwotok',ic:'🩸',cost:14,req:['s_anem'],ds:'Krwawienia wewnętrzne — wysoka śmiertelność.',e:{blood:1,sev:5,leth:2.5,vis:6}},
+ {id:'s_necr',tree:'symp',nm:'Martwica',ic:'🦴',cost:16,req:['s_hem'],ds:'Obumieranie tkanek.',e:{sev:5,leth:2.5,vis:4}},
+ {id:'s_org',tree:'symp',nm:'Niewydolność narządów',ic:'🫀',cost:18,req:['s_pneu','s_hem'],reqAny:1,ds:'Narządy odmawiają posłuszeństwa.',e:{sev:6,leth:3,vis:6}},
+ {id:'s_multi',tree:'symp',nm:'Niewydolność wielonarz.',ic:'💔',cost:24,req:['s_org'],ds:'Kaskadowa zapaść całego ustroju.',e:{sev:7,leth:4,vis:7}},
+ {id:'s_coma',tree:'symp',nm:'Śpiączka',ic:'😵',cost:22,req:['s_multi'],ds:'Nosiciel nieprzytomny — przestaje zarażać świadomie.',e:{sev:6,leth:3,vis:5,inf:-0.3}},
+ {id:'s_cyto',tree:'symp',nm:'Burza cytokinowa',ic:'⚡',cost:26,req:['s_fever','s_pneu'],ds:'Układ odpornościowy atakuje własny organizm.',e:{sev:8,leth:5,vis:8}},
+ {id:'s_total',tree:'symp',nm:'Totalna zapaść',ic:'☠️',cost:40,req:['s_multi','s_coma'],ds:'Finalny, maksymalnie zabójczy zespół objawów.',e:{sev:9,leth:8,vis:9}},
+
+ // --- ODPORNOŚĆ ---
+ {id:'r_drug1',tree:'res',nm:'Odporność na leki I',ic:'💊',cost:14,ds:'Spowalnia prace nad lekiem i leczenie w szpitalach.',e:{drug:1}},
+ {id:'r_drug2',tree:'res',nm:'Odporność na leki II',ic:'💊',cost:20,req:['r_drug1'],ds:'Lekooporność na szeroką skalę.',e:{drug:1.5}},
+ {id:'r_drug3',tree:'res',nm:'Odporność na leki III',ic:'🧯',cost:30,req:['r_drug2'],ds:'Całkowita oporność na znane terapie.',e:{drug:2}},
+ {id:'r_cold1',tree:'res',nm:'Odporność na zimno I',ic:'❄️',cost:10,ds:'Działa w chłodnych regionach.',e:{cold:1}},
+ {id:'r_cold2',tree:'res',nm:'Odporność na zimno II',ic:'🥶',cost:15,req:['r_cold1'],ds:'Przetrwanie w Arktyce i na Syberii.',e:{cold:1.6}},
+ {id:'r_heat1',tree:'res',nm:'Odporność na ciepło I',ic:'🔥',cost:10,ds:'Działa w gorących regionach.',e:{heat:1}},
+ {id:'r_heat2',tree:'res',nm:'Odporność na ciepło II',ic:'🌋',cost:15,req:['r_heat1'],ds:'Pustynie i tropiki przestają szkodzić.',e:{heat:1.6}},
+ {id:'r_arid',tree:'res',nm:'Odporność na suszę',ic:'🏜️',cost:12,ds:'Przetrwanie w suchym klimacie.',e:{arid:1.6}},
+ {id:'r_humid',tree:'res',nm:'Odporność na wilgoć',ic:'💧',cost:12,ds:'Przetrwanie w wilgotnym klimacie.',e:{humid:1.6}},
+ {id:'r_env',tree:'res',nm:'Adaptacja środowiskowa',ic:'🧭',cost:22,req:['r_cold1','r_heat1'],reqAny:1,ds:'Uniwersalna odporność klimatyczna.',e:{cold:1,heat:1,arid:1,humid:1}},
+ {id:'r_gen',tree:'res',nm:'Utwardzenie genomu',ic:'🧬',cost:24,ds:'Stabilny genom: mniejsza widoczność i oporność na leki.',e:{drug:1,vis:-2,stab:1}},
+
+ // --- SPECJALNE (część zależna od patogenu) ---
+ {id:'k_camo',tree:'spec',nm:'Kamuflaż genetyczny',ic:'🌫️',cost:18,ds:'Drastycznie obniża wykrywalność patogenu.',e:{vis:-6}},
+ {id:'k_revmut',tree:'spec',nm:'Mutacja odwrotna',ic:'↩️',cost:16,ds:'Cofa nadmiarową widoczność z mutacji.',e:{vis:-3}},
+ {id:'k_disinfo',tree:'spec',nm:'Dezinformacja',ic:'📉',cost:22,ds:'Fałszywe doniesienia spowalniają reakcję świata.',e:{awareSlow:0.35}},
+ {id:'k_sabot',tree:'spec',nm:'Sabotaż badań',ic:'🧨',cost:28,ds:'Zakłóca globalne laboratoria — lek powstaje wolniej.',e:{cureSlow:0.4}},
+ {id:'k_shell',tree:'spec',nm:'Twarda otoczka',ic:'🛡️',cost:20,ds:'Odporność klimatyczna i częściowa lekooporność.',e:{cold:1,heat:1,arid:1,humid:1,drug:0.6}},
+ // specjalne per-patogen:
+ {id:'sp_vir', tree:'spec',p:'wirus', nm:'Niestabilność genetyczna',ic:'🎲',cost:20,ds:'Mutacje jeszcze częstsze — i częściej korzystne.',e:{mut:1.6,inf:0.4}},
+ {id:'sp_bac', tree:'spec',p:'bakteria',nm:'Śluzowa powłoka',ic:'🧪',cost:22,ds:'Dodatkowa odporność na klimat i leki.',e:{cold:0.8,heat:0.8,arid:0.8,humid:0.8,drug:1}},
+ {id:'sp_fun', tree:'spec',p:'grzyb', nm:'Wyrzut zarodników',ic:'💥',cost:26,ds:'Regularnie zasiewa losowy odległy region — nawet wyspy.',e:{sporeBurst:1}},
+ {id:'sp_par', tree:'spec',p:'pasozyt',nm:'Symbioza',ic:'🫂',cost:18,ds:'Niemal niewidoczny: świat ledwo reaguje.',e:{vis:-5,awareSlow:0.25}},
+ {id:'sp_pri', tree:'spec',p:'prion', nm:'Krystalizacja',ic:'🔷',cost:30,ds:'Lek praktycznie niemożliwy; brak objawów zdradza chorobę.',e:{cureSlow:0.5,drug:2,vis:-4}},
+ {id:'sp_nano',tree:'spec',p:'nano', nm:'Autoreplikacja',ic:'♾️',cost:24,ds:'Nanoboty mnożą się same — stały wzrost zaraźliwości.',e:{inf:1.2,air:0.6}},
+ {id:'sp_neuro',tree:'spec',p:'neuro',nm:'Kontrola umysłu',ic:'🧠',cost:28,ds:'Nosiciele aktywnie szukają kontaktu — ogromny wzrost transmisji.',e:{inf:1.5,dense:0.6}},
+ {id:'sp_rea', tree:'spec',p:'reanim',nm:'Reanimacja',ic:'🧟',cost:26,ds:'Zmarli wracają jako nosiciele — eradykacja niemal niemożliwa.',e:{reanim:1,inf:0.3}},
+];
+const UPMAP=Object.fromEntries(UP.map(u=>[u.id,u]));
+
+/* etykiety efektów do UI */
+const EFFLAB={
+  inf:['Zaraźliwość','g'],air:['Powietrze','g'],water:['Woda','g'],blood:['Krew','g'],
+  rodent:['Gryzonie','g'],bird:['Ptaki','g'],insect:['Owady','g'],livestock:['Hodowle','g'],
+  dense:['Zatłoczenie','g'],poor:['Ubóstwo','g'],hot:['Upał+','g'],crossBorder:['Granice','g'],
+  sev:['Nasilenie','a'],leth:['Śmiertelność','r'],vis:['Widoczność','a'],
+  cold:['Zimno','b'],heat:['Ciepło','b'],arid:['Susza','b'],humid:['Wilgoć','b'],
+  drug:['Lekooporność','b'],stab:['Stabilność','b'],
+  cureSlow:['Spowolnij lek','b'],awareSlow:['Spowolnij świat','b'],mut:['Mutacje','a'],
+  sporeBurst:['Zarodniki','g'],reanim:['Reanimacja','r'],
+};
+function effChips(e){
+  let h='';for(const k in e){const l=EFFLAB[k];if(!l)continue;const v=e[k];
+    const sign=(typeof v==='number'&&['inf','air','water','blood','rodent','bird','insect','livestock','sev','leth','vis','cold','heat','arid','humid','drug','dense','poor','hot'].includes(k))?(v>0?'+':'')+ (Math.round(v*10)/10):'';
+    h+=`<span class="e ${l[1]}">${l[0]}${sign?' '+sign:''}</span>`;}
+  return h;
+}
+
+/* ====================== STAN GRY ====================== */
+let G=null, raf=null, lastT=0, dayAcc=0, bubbleTimer=0, running=false;
+const SPEED_MS=[0,780,360,150];
+
+function newGame(cfg){
+  const regs={};
+  REGIONS.forEach(r=>{regs[r.id]={h:r.pop,i:0,d:0,v:0,seen:false,react:0,locked:false,closed:false};});
+  const r0=regs[cfg.start];
+  r0.i=Math.min(15, r0.h); r0.h-=r0.i;
+  G={
+    cfg, diff:DIFFS.find(d=>d.id===cfg.diff), path:PATHOGENS[cfg.path],
+    genes:cfg.genes.slice(), start:cfg.start,
+    day:0, pe:0, speed:1, regs,
+    bought:new Set(), mutated:new Set(),
+    cure:0, aware:0,
+    news:[], history:[], // {day,inf,dead,cure}
+    bubbles:[], nextBubble:rand(...CONFIG.bubbleEvery), nextMutDay:rand(...CONFIG.mutEveryDays),
+    stats:{}, ended:false, result:null, score:0, peakInfDay:0, peakInf:0,
+    unlocks:new Set(cfg.genes), achievements:new Set(),
+    totalPop:REGIONS.reduce((s,r)=>s+r.pop,0),
+    reanimPool:0,
+  };
+  // geny startowe
+  const gn=new Set(G.genes);
+  if(gn.has('aero')){G.bought.add('t_contact');G.bought.add('t_drop');}
+  if(gn.has('extremo')){/* odporności nadawane w recompute */}
+  G.pe = G.diff.startPE;
+  // nano start
+  if(G.path.base.cure0) G.cure = G.path.base.cure0;
+  if(G.diff.cure0) G.cure = Math.max(G.cure, G.diff.cure0);
+  if(G.path.base.aware0) G.aware = G.path.base.aware0;
+  addNews('good','☣️','Patogen wypuszczony',`Pierwszy przypadek w regionie ${RMAP[cfg.start].nm}. Świat jeszcze nic nie wie…`);
+  recompute();
+  return G;
+}
+
+/* ---------- agregacja statystyk z ulepszeń+genów+patogenu ---------- */
+function recompute(){
+  const s={inf:0,air:0,water:0,blood:0,rodent:0,bird:0,insect:0,livestock:0,dense:0,poor:0,hot:0,
+    sev:0,leth:0,vis:0,cold:0,heat:0,arid:0,humid:0,drug:0,stab:0,
+    cureSlow:0,awareSlow:0,mut:0,sporeBurst:0,reanim:0,crossBorder:0};
+  const add=e=>{for(const k in e){if(k in s)s[k]+=e[k];}};
+  // patogen baza
+  const pb=G.path.base;
+  if(pb.climate){s.cold+=pb.climate;s.heat+=pb.climate;s.arid+=pb.climate;s.humid+=pb.climate;}
+  if(pb.vis)s.vis+=pb.vis;
+  // geny
+  const gn=new Set(G.genes);
+  if(gn.has('startAir'))s.air+=1;
+  if(gn.has('aero'))s.air+=1;
+  if(gn.has('extremo')){s.cold+=1;s.heat+=1;}
+  if(gn.has('stealth'))s.vis-=4;
+  if(gn.has('viru')){s.leth+=1.5;s.vis+=1.5;}
+  // kupione + mutacje
+  [...G.bought,...G.mutated].forEach(id=>{const u=UPMAP[id];if(u)add(u.e);});
+  // mutacje liczą tylko objawy (efekty jak zwykle)
+  G.stats=s;
+  return s;
+}
+
+/* mutacja genowa patogenu (tempo) */
+function mutChance(){
+  let base=1/((CONFIG.mutEveryDays[0]+CONFIG.mutEveryDays[1])/2);
+  let m=G.path.base.mutRate;
+  if(G.genes.includes('darwin'))m*=GENES.darwin.e.mut;
+  if(G.bought.has('sp_vir'))m*=1.6;
+  if(G.stats.stab)m*=0.5;
+  return m;
+}
+
+/* ---------- koszt z rabatami ---------- */
+function costOf(u){
+  let c=u.cost;
+  if(u.tree==='trans'&&G.genes.includes('teleo'))c*=(1-GENES.teleo.e.transDisc);
+  return Math.round(c);
+}
+
+/* ---------- czy można kupić ---------- */
+function canBuy(u){
+  if(G.bought.has(u.id))return false;
+  if(u.p&&u.p!==G.cfg.path)return false;
+  if(!u.req)return true;
+  if(u.reqAny)return u.req.some(r=>G.bought.has(r)||G.mutated.has(r));
+  return u.req.every(r=>G.bought.has(r)||G.mutated.has(r));
+}
+function buy(u){
+  const c=costOf(u);
+  if(G.pe<c||!canBuy(u))return false;
+  G.pe-=c; G.bought.add(u.id);
+  if(G.mutated.has(u.id))G.mutated.delete(u.id); // mutacja ustabilizowana
+  recompute(); flashTab(u.tree);
+  toast('g',`+ ${u.nm}`);
+  return true;
+}
+function devolve(id){
+  // cofanie mutacji (darmowe, zmniejsza widoczność) lub kupionego objawu (zwrot 50%)
+  const u=UPMAP[id];
+  if(G.mutated.has(id)){G.mutated.delete(id);recompute();toast('a',`Cofnięto mutację: ${u.nm}`);return;}
+  if(G.bought.has(id)){
+    // tylko objawy można cofać; nie cofaj jeśli coś od tego zależy
+    const dep=UP.some(x=>(G.bought.has(x.id))&&x.req&&x.req.includes(id)&&!x.reqAny);
+    if(dep){toast('r','Najpierw cofnij zależne ulepszenia');return;}
+    G.bought.delete(id);G.pe+=Math.round(costOf(u)*0.5);recompute();toast('a',`Cofnięto: ${u.nm} (+${Math.round(costOf(u)*0.5)})`);
+  }
+}
+
+/* ====================== SYMULACJA (1 dzień) ====================== */
+function simDay(){
+  if(G.ended)return;
+  G.day++;
+  const s=G.stats, diff=G.diff;
+  const infectivity = CONFIG.infBase + s.inf*CONFIG.infPerPoint;
+  const lethality   = Math.max(0, s.leth*CONFIG.lethPerPoint);
+  let newInfTotal=0, newDeadTotal=0, infectedPeople=0, deadPeople=0, alivePeople=0, totalInf=0;
+
+  // --- wzrost wewnątrz regionów ---
+  for(const r of REGIONS){
+    const st=G.regs[r.id];
+    const P0=r.pop;
+    if(st.i>0||st.d>0){ // region dotknięty
+      // środowiskowy modyfikator
+      let env=1;
+      const has=(k)=>s[k]>0;
+      if(r.cl.includes('zimny'))env*=clamp(0.55+s.cold*0.22,0.45,1.15);
+      if(r.cl.includes('goracy'))env*=clamp(0.62+s.heat*0.2,0.5,1.15)*(1+s.insect*0.05+s.hot*0.08);
+      if(r.cl.includes('suchy'))env*=clamp(0.7+s.arid*0.18,0.55,1.1);
+      if(r.cl.includes('wilgotny'))env*=clamp(0.8+s.humid*0.12,0.7,1.25)*(1+s.insect*0.04);
+      if(r.cl.includes('umiarkowany'))env*=1.05;
+      // gęstość / ubóstwo
+      env*=1+ r.d*0.14*(1+s.dense*0.12);
+      if(r.w<=1)env*=1+s.poor*0.06+s.rodent*0.04+s.livestock*0.04;
+      // reakcja regionu (lockdown/maski)
+      if(st.locked)env*=clamp(0.45+ (1-diff.react)*0.2,0.3,0.7);
+      // kraj bogaty z opieką tłumi mocniej gdy świadomy
+      if(st.react>0)env*=clamp(1 - st.react*0.004*(r.w+r.h), 0.4,1);
+
+      const infRate=infectivity*env;
+      const frac=st.h/P0;
+      let ni=st.i*infRate*frac;
+      // szczepienia: bogate świadome regiony usuwają podatnych
+      if(st.react>30 && r.w>=2){
+        const vac=st.h*0.0009*(r.w)*(r.h+1)*(G.cure/100+0.1)*diff.react;
+        st.v+=Math.min(st.h,vac); st.h-=Math.min(st.h,vac);
+      }
+      ni=Math.min(st.h,ni);
+      // zgony
+      const hcMit=clamp(r.h*0.06*(1 - clamp(s.drug*0.18,0,0.8)) - (st.locked?0:0),0,0.6);
+      let nd=st.i*lethality*(1-hcMit);
+      nd=Math.min(st.i, nd);
+      st.h-=ni; st.i+=ni-nd; st.d+=nd;
+      if(st.i<0)st.i=0;
+      newInfTotal+=ni; newDeadTotal+=nd;
+      // reanimacja (grzyb-reanimator)
+      if(s.reanim && st.d>0 && st.h>0){
+        const back=st.d*0.0025;
+        st.d-=back; st.i+=back;
+      }
+      // wykrycie regionu
+      if(!st.seen && st.i>P0*0.0025 && (s.sev>0||s.vis>0)){
+        st.seen=true;
+        if(G.day>3) addNews('warn','🔬',`Ognisko: ${r.nm}`,`Służby zdrowia potwierdziły zakażenia w regionie ${r.nm}.`);
+      }
+      // narastanie reakcji — stłumione dla cichego patogenu, napędzane objawami i zgonami
+      if(st.seen){
+        const deadFrac=st.d/P0;
+        const sevF=(s.sev*0.018 + s.vis*0.03);
+        const deathDrive=deadFrac>0.0005?0.5:0;
+        const grow=(0.04 + sevF + deathDrive)*diff.react*(1-s.awareSlow);
+        st.react=clamp(st.react + grow,0,100);
+        if(st.react>0 && grow<0.06) st.react=clamp(st.react-0.03,0,100); // powolny zanik gdy nic się nie dzieje
+        if(!st.locked && st.react>42 && r.w>=1){st.locked=true;}
+        if(!st.closed && st.react>55){st.closed=true; if(Math.random()<0.5&&G.day>5)addNews('warn','🚧',`${r.nm} zamyka granice`,'Wstrzymano ruch lotniczy i morski.');}
+      }
+    }
+    infectedPeople+=st.i; deadPeople+=st.d; alivePeople+=st.h; totalInf+=st.i+st.d+st.v;
+  }
+
+  // --- rozprzestrzenianie między regionami ---
+  for(const [a,b,t] of ROUTES){
+    const A=G.regs[a],B=G.regs[b],ra=RMAP[a],rb=RMAP[b];
+    trySpread(A,B,ra,rb,t,s,infectivity);
+    trySpread(B,A,rb,ra,t,s,infectivity);
+  }
+  // wyrzut zarodników (grzyb)
+  if(s.sporeBurst && G.day%6===0){
+    const seeded=REGIONS.filter(r=>G.regs[r.id].i>0);
+    if(seeded.length){
+      const tgt=pick(REGIONS.filter(r=>G.regs[r.id].i===0&&G.regs[r.id].h>0));
+      if(tgt){const st=G.regs[tgt.id];const seed=Math.min(st.h,tgt.pop*0.00002+6);st.i+=seed;st.h-=seed;
+        if(Math.random()<0.5)addNews('good','💥','Wyrzut zarodników',`Patogen zasiał odległy region: ${tgt.nm}.`);}
+    }
+  }
+
+  // --- globalne wskaźniki ---
+  G.aware = clamp(computeAware(deadPeople,infectedPeople), 0, 100);
+  // badania nad lekiem
+  let research=0;
+  for(const r of REGIONS){const st=G.regs[r.id];if(st.seen){research+=(r.w+1)*(r.h+1)*(0.4+st.react/140);}}
+  research/= 230;
+  const cureSlow = clamp(s.cureSlow + s.drug*0.06, 0, 0.9);
+  const cureGain = research*Math.pow(G.aware/100,1.2)*diff.cure*(1-cureSlow)*0.55;
+  G.cure=clamp(G.cure+cureGain,0,100);
+
+  // --- DNA / punkty ---
+  const infFrac=infectedPeople/G.totalPop;
+  if(infFrac>G.peakInf){G.peakInf=infFrac;G.peakInfDay=G.day;}
+  let peGain=CONFIG.peBase + infFrac*CONFIG.pePerInfFrac;
+  if(G.genes.includes('metab'))peGain+=GENES.metab.e.peTrickle;
+  G.pe+=peGain;
+
+  // --- mutacje losowe ---
+  if(G.day>=G.nextMutDay){
+    G.nextMutDay=G.day+rand(...CONFIG.mutEveryDays)/clamp(mutChance(),0.3,6);
+    doMutation();
+  }
+
+  // --- historia dla wykresu ---
+  if(G.day%2===0||G.history.length===0){
+    G.history.push({day:G.day,inf:infectedPeople,dead:deadPeople,alive:alivePeople,cure:G.cure});
+    if(G.history.length>240)G.history.shift();
+  }
+
+  // --- warunki końca ---
+  checkEnd(alivePeople,infectedPeople,deadPeople);
+  autosave();
+}
+
+function trySpread(src,dst,rs,rd,t,s,infectivity){
+  if(src.i<=0||dst.h<=0)return;
+  if(dst.i>0 && dst.i>rd.pop*0.0005)return; // już rozkręcone — pomiń seeding
+  const fa=src.i/rs.pop;
+  if(fa<=0)return;
+  let w=0, chan=0;
+  if(t==='land'){w=1.0; chan=1+ s.rodent*0.15+s.livestock*0.12+s.insect*0.1+s.blood*0.08;}
+  else if(t==='sea'){w=0.5*(1+rs.pt*0.3+rd.pt*0.3); chan=0.3+ s.water*0.5;}
+  else if(t==='air'){w=0.85*(1+rs.ap*0.4+rd.ap*0.4); chan=0.3+ s.air*0.45+s.bird*0.35;}
+  // kara za granice celu
+  let border=1;
+  if(dst.closed && t!=='land'){border= s.crossBorder?0.6:0.22;}
+  if(dst.locked && t==='land')border*=0.6;
+  // wyspa osiągalna tylko sea/air
+  if(rd.isl && t==='land')return;
+  const chance=CONFIG.spreadBase*w*chan*Math.sqrt(fa)*(0.6+infectivity*4)*border*(1+(G.diff.react<1?0.2:0));
+  if(Math.random()<chance){
+    const seed=Math.min(dst.h, Math.max(4, rd.pop*0.000012));
+    dst.i+=seed; dst.h-=seed;
+  }
+}
+
+function computeAware(dead,inf){
+  const s=G.stats;
+  const deadFrac=dead/G.totalPop, infFrac=inf/G.totalPop;
+  // świadomość napędzają ZGONY i widoczne OBJAWY, nie sam zasięg — cichy patogen pozostaje w cieniu
+  let a= deadFrac*220 + infFrac*8 + s.sev*0.9 + s.vis*1.5;
+  // średnia reakcja regionów podbija świadomość (łagodniej)
+  let react=0,n=0;for(const r of REGIONS){const st=G.regs[r.id];if(st.seen){react+=st.react;n++;}}
+  if(n)a=Math.max(a, react/n*0.65);
+  a*=G.diff.aware*(1-s.awareSlow*0.6);
+  return a;
+}
+
+/* ---------- mutacja: dodaje losowy objaw ---------- */
+function doMutation(){
+  const pool=UP.filter(u=>u.tree==='symp'&&!G.bought.has(u.id)&&!G.mutated.has(u.id)&&canBuyLoose(u));
+  if(!pool.length)return;
+  const u=pick(pool);
+  G.mutated.add(u.id); recompute(); flashTab('symp'); flashTab('news');
+  addNews('bad','🧬','Spontaniczna mutacja',`Patogen samoczynnie rozwinął objaw: „${u.nm}”. Zwiększa to widoczność — możesz go cofnąć w zakładce Objawy.`);
+  toast('a',`Mutacja: ${u.nm}`);
+}
+function canBuyLoose(u){ // req spełnione przez bought lub mutated
+  if(!u.req)return true;
+  if(u.reqAny)return u.req.some(r=>G.bought.has(r)||G.mutated.has(r));
+  return u.req.every(r=>G.bought.has(r)||G.mutated.has(r));
+}
+
+/* ====================== KONIEC GRY ====================== */
+function checkEnd(alive,inf,dead){
+  if(G.ended)return;
+  const wipeout=G.totalPop*0.0005; // praktyczne wymazanie ludzkości
+  if(G.cure>=100){end('lose','Lek gotowy','Świat opracował skuteczną szczepionkę i opanował pandemię. Twój patogen został pokonany.');return;}
+  if(alive<=wipeout && (inf+dead)>=1){end('win','Ludzkość upadła',`Niemal wszyscy z ${fmt(G.totalPop)} ludzi zostali dotknięci. ${G.path.nm==='Neurowirus'?'Cała populacja jest pod kontrolą.':'Twój patogen zwyciężył.'}`);return;}
+  if(inf<1 && alive>wipeout && dead>0 && G.day>8){
+    // wygasło — eradykacja (reanim ratuje czasem)
+    if(G.stats.reanim && G.reanimPool>0)return;
+    end('lose','Patogen wygasł','Zabrakło nosicieli, zanim zaraza dotarła wszędzie. Ognisko zostało wygaszone.');return;
+  }
+}
+function end(result,title,sub){
+  G.ended=true; running=false; setSpeed(0);
+  G.result=result;
+  // ocena
+  const deadFrac=totals().dead/G.totalPop;
+  const affected=(totals().dead+totals().inf+totals().vac+ (G.totalPop-totals().alive))/G.totalPop;
+  let base = result==='win'? 70+ (160-Math.min(160,G.day))*0.2 : 30*affected;
+  base += (1-G.cure/100)*20;
+  base += G.diff.dots*12;
+  G.score=Math.round(Math.max(0,base*10 + totals().dead/1e7));
+  const grades=[['S',95],['A',80],['B',62],['C',45],['D',25],['E',0]];
+  let gr='F'; const norm=clamp(base/ (result==='win'?120:60) *100,0,100);
+  for(const [g,t] of grades){if(norm>=t){gr=g;break;}}
+  evalAchievements(result);
+  showEnd(result,title,sub,gr);
+}
+
+function totals(){
+  let inf=0,dead=0,alive=0,vac=0;
+  for(const r of REGIONS){const st=G.regs[r.id];inf+=st.i;dead+=st.d;alive+=st.h;vac+=st.v;}
+  return {inf,dead,alive,vac};
+}
+
+/* ====================== OSIĄGNIĘCIA ====================== */
+const ACHS=[
+  {id:'global',ic:'🌍',t:'Pandemia globalna',d:'Zaraź wszystkie 20 regionów.'},
+  {id:'fast',ic:'⚡',t:'Błyskawica',d:'Wygraj przed dniem 120.'},
+  {id:'silent',ic:'🌑',t:'Cichy zabójca',d:'Wygraj, nie przekraczając 35% świadomości świata.'},
+  {id:'island',ic:'🏝️',t:'Łowca wysp',d:'Zaraź wszystkie regiony wyspiarskie.'},
+  {id:'billion',ic:'💀',t:'Miliard',d:'Osiągnij miliard zgonów.'},
+  {id:'brutal',ic:'🔥',t:'Mistrz brutalności',d:'Wygraj na poziomie Brutalny.'},
+];
+function evalAchievements(result){
+  const reg=REGIONS.map(r=>G.regs[r.id]);
+  if(reg.every(s=>s.i+s.d+s.v>0))G.achievements.add('global');
+  if(result==='win'&&G.day<120)G.achievements.add('fast');
+  if(result==='win'&&G.aware<=35)G.achievements.add('silent');
+  if(REGIONS.filter(r=>r.isl).every(r=>{const s=G.regs[r.id];return s.i+s.d+s.v>0;}))G.achievements.add('island');
+  if(totals().dead>=1e9)G.achievements.add('billion');
+  if(result==='win'&&G.cfg.diff==='brutalny')G.achievements.add('brutal');
+  // zapis trwały
+  try{const saved=new Set(JSON.parse(localStorage.getItem('pz_ach')||'[]'));G.achievements.forEach(a=>saved.add(a));localStorage.setItem('pz_ach',JSON.stringify([...saved]));}catch(e){}
+}
+
+/* ====================== WIADOMOŚCI ====================== */
+function addNews(kind,ic,h,p){
+  G.news.unshift({kind,ic,h,p,day:G.day});
+  if(G.news.length>60)G.news.pop();
+  flashTab('news');
+  updateTicker();
+}
+function updateTicker(){
+  const t=$('#tkTrack');if(!t)return;
+  const items=G.news.slice(0,8).map(n=>`<span><b>${n.ic} ${n.h}</b> — ${n.p}</span>`).join('');
+  t.innerHTML=items||'<span>Świat jest spokojny…</span>';
+}
+
+/* ====================== ZDARZENIA LOSOWE ====================== */
+function maybeEvent(){
+  if(G.ended)return;
+  // wyzwalane co jakiś czas przy pewnym postępie
+  if(G.day<10||G.day%1!==0)return;
+  if(Math.random()>0.045)return;
+  const infFrac=totals().inf/G.totalPop;
+  const ev=pick(EVENTS.filter(e=>e.when(infFrac)));
+  if(ev)fireEvent(ev);
+}
+const EVENTS=[
+ {id:'festival',when:f=>f>0.01,run(){const r=pick(REGIONS.filter(x=>G.regs[x.id].h>0));const st=G.regs[r.id];const add=Math.min(st.h,st.i>0?st.i*1.5+500:r.pop*0.00005);if(st.i===0){st.i+=add;st.h-=add;}else{st.i+=add;st.h-=Math.min(st.h,add);}return{kind:'bad',ic:'🎉',k:'ZDARZENIE',t:`Wielki festiwal w ${r.nm}`,p:`Tłumy sprzyjają transmisji — gwałtowny skok zakażeń w regionie ${r.nm}.`};}},
+ {id:'breakthrough',when:f=>G.aware>20,run(){G.cure=clamp(G.cure+rand(3,7),0,100);return{kind:'bad',ic:'🔬',k:'OSTRZEŻENIE',t:'Przełom w laboratorium',p:'Zespół badawczy odkrył kluczowy marker. Prace nad lekiem przyspieszyły.'};}},
+ {id:'heatwave',when:f=>true,run(){const r=pick(REGIONS.filter(x=>x.cl.includes('goracy')));const st=G.regs[r.id];if(!G.stats.heat&&st.i>0){const loss=st.i*0.25;st.i-=loss;st.d+=loss*0.2;st.h+=0;}return{kind:'warn',ic:'🌡️',k:'POGODA',t:`Fala upałów: ${r.nm}`,p:G.stats.heat?'Twoja odporność na ciepło chroni patogen.':'Bez odporności na ciepło część patogenu ginie w upale.'};}},
+ {id:'coldsnap',when:f=>true,run(){const r=pick(REGIONS.filter(x=>x.cl.includes('zimny')));const st=G.regs[r.id];if(!G.stats.cold&&st.i>0){const loss=st.i*0.3;st.i-=loss;}return{kind:'warn',ic:'❄️',k:'POGODA',t:`Siarczysty mróz: ${r.nm}`,p:G.stats.cold?'Odporność na zimno utrzymuje patogen aktywnym.':'Mróz ogranicza transmisję — rozważ odporność na zimno.'};}},
+ {id:'whofund',when:f=>G.aware>35,run(){REGIONS.forEach(r=>{if(G.regs[r.id].seen)G.regs[r.id].react=clamp(G.regs[r.id].react+8,0,100);});return{kind:'bad',ic:'🏛️',k:'POLITYKA',t:'WHO ogłasza stan zagrożenia',p:'Globalne finansowanie badań rośnie. Rządy zaostrzają obostrzenia.'};}},
+ {id:'mutboost',when:f=>f>0.03,run(){doMutation();return null;}},
+ {id:'bonus',when:f=>true,run(){const b=Math.round(rand(6,16));G.pe+=b;return{kind:'good',ic:'🧬',k:'ODKRYCIE',t:'Spontaniczny rozwój',p:`Patogen samoczynnie zoptymalizował strukturę. +${b} DNA.`};}},
+ {id:'antivax',when:f=>G.aware>40,run(){const r=pick(REGIONS.filter(x=>G.regs[x.id].react>30));if(r){G.regs[r.id].react=clamp(G.regs[r.id].react-15,0,100);G.regs[r.id].locked=false;}return{kind:'good',ic:'📢',k:'SPOŁECZEŃSTWO',t:`Protesty w ${r?r.nm:'regionie'}`,p:'Zmęczenie obostrzeniami osłabia reakcję władz.'};}},
+ {id:'lockdown',when:f=>f>0.05&&G.aware>30,run(){const r=pick(REGIONS.filter(x=>G.regs[x.id].i>0&&!G.regs[x.id].locked));if(r){G.regs[r.id].locked=true;G.regs[r.id].closed=true;G.regs[r.id].react=clamp(G.regs[r.id].react+10,0,100);}return{kind:'warn',ic:'🚧',k:'POLITYKA',t:`Twardy lockdown: ${r?r.nm:'—'}`,p:'Region wprowadza kwarantannę i zamyka granice.'};}},
+];
+function fireEvent(ev){
+  const res=ev.run();
+  if(!res)return;
+  addNews(res.kind,res.ic,res.t,res.p);
+  // pokaż większe zdarzenia jako popup (rzadziej, by nie przeszkadzać)
+  if(['breakthrough','whofund','festival'].includes(ev.id) && Math.random()<0.6){
+    showEventPopup(res);
+  }
+}
+function showEventPopup(res){
+  const prevSpeed=G.speed; setSpeed(0);
+  $('#evIc').textContent=res.ic; $('#evKind').textContent=res.k; $('#evTitle').textContent=res.t; $('#evText').textContent=res.p;
+  const act=$('#evAct');act.innerHTML='';
+  const b=document.createElement('button');b.className='btn';b.textContent='Rozumiem';
+  b.onclick=()=>{$('#event').style.display='none';setSpeed(prevSpeed||1);};
+  act.appendChild(b);
+  $('#event').style.display='flex';
+}
+
+/* ====================== BĄBELKI DNA ====================== */
+function spawnBubble(){
+  const infected=REGIONS.filter(r=>G.regs[r.id].i>0);
+  if(!infected.length)return;
+  const r=pick(infected);
+  const good=Math.random()<0.82;
+  G.bubbles.push({rid:r.id,x:r.x,y:r.y-6,vy:-rand(14,24),life:0,ttl:rand(3.2,4.5),good,val:good?Math.round(rand(3,9)):0,wob:rand(0,6.28)});
+}
+function tapBubble(cx,cy){
+  for(let i=G.bubbles.length-1;i>=0;i--){
+    const b=G.bubbles[i];const sp=worldToScreen(b.x,b.y);
+    const r=22*mapScale();
+    if(Math.hypot(cx-sp.x,cy-sp.y)<r){
+      if(b.good){let v=b.val;if(G.genes.includes('atp'))v=Math.round(v*(1+GENES.atp.e.bubble));G.pe+=v;toast('g',`+${v} DNA`);}
+      else{G.cure=clamp(G.cure-rand(1.5,3.5),0,100);toast('b','Sabotaż badań!');}
+      G.bubbles.splice(i,1);return true;
+    }
+  }
+  return false;
+}
+
+/* ====================== RENDER MAPY ====================== */
+const mapC=$('#map'); let mapCtx, MW=1000, MH=480, _scale=1, _ox=0, _oy=0, dpr=1;
+function resizeMap(){
+  const wrap=$('#mapwrap');if(!wrap)return;
+  const w=wrap.clientWidth,h=wrap.clientHeight;
+  dpr=Math.min(2,window.devicePixelRatio||1);
+  mapC.width=w*dpr;mapC.height=h*dpr;mapC.style.width=w+'px';mapC.style.height=h+'px';
+  mapCtx=mapC.getContext('2d');mapCtx.setTransform(dpr,0,0,dpr,0,0);
+  // dopasuj świat 1000x480 do obszaru (contain)
+  _scale=Math.min(w/MW,h/MH);
+  _ox=(w-MW*_scale)/2; _oy=(h-MH*_scale)/2;
+}
+function mapScale(){return _scale;}
+function worldToScreen(x,y){return {x:_ox+x*_scale,y:_oy+y*_scale};}
+function screenToWorld(x,y){return {x:(x-_ox)/_scale,y:(y-_oy)/_scale};}
+
+// kontury kontynentów (stylizowane)
+const LAND=[
+ [[90,120],[160,96],[230,110],[262,150],[250,210],[262,250],[236,290],[205,282],[192,246],[150,238],[120,205],[96,165]],
+ [[250,300],[300,292],[335,330],[330,392],[306,458],[276,472],[262,420],[272,362],[250,328]],
+ [[452,150],[520,110],[560,96],[650,90],[760,96],[840,120],[862,172],[832,212],[772,236],[720,252],[700,300],[742,300],[760,246],[690,248],[640,250],[602,222],[560,214],[520,212],[476,206],[456,180]],
+ [[466,232],[560,228],[602,258],[602,320],[576,392],[548,444],[516,432],[500,372],[480,322],[462,276]],
+ [[852,392],[922,386],[944,426],[908,462],[856,452],[840,416]],
+ [[306,60],[356,56],[370,96],[338,122],[302,106]],
+];
+const ISLE_DOTS=[['jpn'],['sea'],['oce'],['car']];
+
+function drawMap(dt){
+  if(!mapCtx)return;
+  const g=mapCtx, w=mapC.clientWidth||mapC.width/dpr, h=mapC.clientHeight||mapC.height/dpr;
+  g.clearRect(0,0,w,h);
+  // ocean grid
+  g.save();
+  g.fillStyle='#071019';g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(60,110,150,.07)';g.lineWidth=1;
+  for(let x=0;x<=MW;x+=50){const a=worldToScreen(x,0),b=worldToScreen(x,MH);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();}
+  for(let y=0;y<=MH;y+=50){const a=worldToScreen(0,y),b=worldToScreen(MW,y);g.beginPath();g.moveTo(a.x,a.y);g.lineTo(b.x,b.y);g.stroke();}
+  // kontynenty
+  for(const poly of LAND){
+    g.beginPath();
+    poly.forEach((p,i)=>{const s=worldToScreen(p[0],p[1]);i?g.lineTo(s.x,s.y):g.moveTo(s.x,s.y);});
+    g.closePath();
+    g.fillStyle='#0f1d26';g.fill();
+    g.strokeStyle='rgba(80,140,120,.18)';g.lineWidth=1.2;g.stroke();
+  }
+  // trasy
+  for(const [a,b,t] of ROUTES){
+    const ra=RMAP[a],rb=RMAP[b];const sa=worldToScreen(ra.x,ra.y),sb=worldToScreen(rb.x,rb.y);
+    const A=G.regs[a],B=G.regs[b];
+    const active=(A.i>0&&B.i>0);
+    g.beginPath();g.moveTo(sa.x,sa.y);
+    if(t==='air'){const mx=(sa.x+sb.x)/2,my=(sa.y+sb.y)/2-Math.hypot(sb.x-sa.x,sb.y-sa.y)*0.16;g.quadraticCurveTo(mx,my,sb.x,sb.y);}
+    else g.lineTo(sb.x,sb.y);
+    g.lineWidth=t==='air'?1:1.2;
+    g.setLineDash(t==='air'?[4,5]:t==='sea'?[2,4]:[]);
+    g.strokeStyle= active? 'rgba(255,93,108,.5)' : (t==='land'?'rgba(70,120,140,.18)':'rgba(70,120,140,.1)');
+    g.stroke();g.setLineDash([]);
+  }
+  // węzły
+  for(const r of REGIONS){
+    const st=G.regs[r.id];const s=worldToScreen(r.x,r.y);
+    const total=r.pop; const infFrac=clamp((st.i+st.d+st.v)/total,0,1);
+    const deadFrac=clamp(st.d/total,0,1);
+    const base=6+Math.log10(r.pop/1e6+1)*2.1;
+    // poświata gdy zakażony
+    if(st.i>0){
+      const pr=base+6+Math.sin(G.day*0.5+r.x)*1.5;
+      const grd=g.createRadialGradient(s.x,s.y,2,s.x,s.y,pr*2.2);
+      grd.addColorStop(0,`rgba(255,120,80,${0.22+infFrac*0.25})`);grd.addColorStop(1,'rgba(255,120,80,0)');
+      g.fillStyle=grd;g.beginPath();g.arc(s.x,s.y,pr*2.2,0,6.29);g.fill();
+    }
+    // pierścień
+    g.beginPath();g.arc(s.x,s.y,base+2.5,0,6.29);g.fillStyle='rgba(10,16,24,.9)';g.fill();
+    // wypełnienie wg stanu
+    let col;
+    if(deadFrac>0.4)col='#ff5d6c';
+    else if(infFrac>0.6)col='#ff8a4d';
+    else if(infFrac>0.15)col='#ffc24d';
+    else if(infFrac>0.001)col='#d7e24d';
+    else col= st.react>40?'#5ab6ff':'#45e0a0';
+    g.beginPath();g.arc(s.x,s.y,base,0,6.29);g.fillStyle=col;g.globalAlpha=0.92;g.fill();g.globalAlpha=1;
+    // pierścień świadomości/lockdown
+    if(st.locked||st.closed){g.beginPath();g.arc(s.x,s.y,base+4,0,6.29);g.strokeStyle='rgba(90,182,255,.8)';g.lineWidth=1.3;g.setLineDash([3,3]);g.stroke();g.setLineDash([]);}
+    // etykieta
+    g.font='600 9px Chakra Petch, sans-serif';g.fillStyle='rgba(230,238,246,.72)';g.textAlign='center';
+    g.fillText(r.s,s.x,s.y+base+10);
+    // znacznik wyboru startu
+    if(G.selStart===r.id){g.beginPath();g.arc(s.x,s.y,base+7,0,6.29);g.strokeStyle='#45e0a0';g.lineWidth=2;g.stroke();}
+  }
+  // bąbelki
+  for(let i=G.bubbles.length-1;i>=0;i--){
+    const b=G.bubbles[i];b.life+=dt;b.y+=b.vy*dt; b.vy*=0.99;
+    const s=worldToScreen(b.x+Math.sin(b.life*3+b.wob)*6,b.y);
+    const rr=(b.good?15:13)*mapScale()*(1+Math.sin(b.life*6)*0.04);
+    const a=clamp(1-(b.life/b.ttl),0,1);
+    g.globalAlpha=a*0.9;
+    const grd=g.createRadialGradient(s.x-rr*0.3,s.y-rr*0.3,1,s.x,s.y,rr);
+    if(b.good){grd.addColorStop(0,'rgba(140,255,200,.95)');grd.addColorStop(1,'rgba(45,156,111,.5)');}
+    else{grd.addColorStop(0,'rgba(160,210,255,.95)');grd.addColorStop(1,'rgba(45,110,168,.5)');}
+    g.fillStyle=grd;g.beginPath();g.arc(s.x,s.y,rr,0,6.29);g.fill();
+    g.globalAlpha=a;g.fillStyle=b.good?'#04120b':'#041018';g.font='700 '+(11*mapScale()+4)+'px Chakra Petch';g.textAlign='center';g.textBaseline='middle';
+    g.fillText(b.good?'DNA':'✕',s.x,s.y+1);g.textBaseline='alphabetic';
+    g.globalAlpha=1;
+    if(b.life>=b.ttl)G.bubbles.splice(i,1);
+  }
+  g.restore();
+}
+
+/* ====================== PĘTLA GŁÓWNA ====================== */
+function loop(t){
+  raf=requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(t-lastT)/1000)||0; lastT=t;
+  if(running && G.speed>0 && !G.ended){
+    const stepMs=SPEED_MS[G.speed];
+    dayAcc+=dt*1000;
+    let guard=0;
+    while(dayAcc>=stepMs && guard<6){dayAcc-=stepMs;simDay();maybeEvent();guard++;if(G.ended)break;}
+    bubbleTimer-=dt*1000;
+    if(bubbleTimer<=0 && !G.ended){spawnBubble();bubbleTimer=rand(...CONFIG.bubbleEvery)/ (G.speed>1?G.speed*0.7:1);}
+  }
+  drawMap(dt);
+  if(G && !G.ended) syncHUD();
+}
+
+/* ====================== HUD / SYNC ====================== */
+function syncHUD(){
+  const tt=totals();
+  $('#hudPE').textContent=Math.floor(G.pe);
+  $('#hudDay').textContent=G.day;
+  const ever=clamp((G.totalPop-tt.alive)/G.totalPop,0,1);
+  $('#barInf').style.width=(ever*100)+'%';$('#valInf').textContent=pct(ever);
+  $('#barCure').style.width=G.cure+'%';$('#valCure').textContent=Math.round(G.cure)+'%';
+  $('#chAlive').textContent=fmt(tt.alive);
+  $('#chInf').textContent=fmt(tt.inf);
+  $('#chDead').textContent=fmt(tt.dead);
+}
+function flashTab(tab){
+  const b=$(`[data-badge="${tab}"]`);if(!b)return;
+  if(tab==='news'){const n=G.news.length?('!'):'';b.textContent='';b.hidden=false;b.textContent='●';setTimeout(()=>{b.hidden=true;},4000);return;}
+  // dla drzewek: pokaż kropkę gdy stać na jakieś ulepszenie
+  refreshAffordBadges();
+}
+function refreshAffordBadges(){
+  ['trans','symp','res','spec'].forEach(tree=>{
+    const n=UP.filter(u=>u.tree===tree&&canBuy(u)&&G.pe>=costOf(u)).length;
+    const b=$(`[data-badge="${tree}"]`);if(!b)return;
+    if(n>0){b.textContent=n;b.hidden=false;}else b.hidden=true;
+  });
+}
+
+/* ====================== PANELE / ARKUSZ ====================== */
+let curTab=null;
+function openSheet(tab){
+  curTab=tab;
+  $('#sheet').classList.add('open');
+  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  renderSheet(tab);
+}
+function closeSheet(){$('#sheet').classList.remove('open');$$('#tabs button').forEach(b=>b.classList.remove('on'));curTab=null;}
+function renderSheet(tab){
+  const titles={trans:'Transmisja',symp:'Objawy',res:'Odporność',spec:'Zdolności specjalne',world:'Stan świata',news:'Wiadomości'};
+  $('#shTitle').textContent=titles[tab];
+  const body=$('#shBody');
+  if(tab==='world'){body.innerHTML=renderWorld();bindWorld();return;}
+  if(tab==='news'){body.innerHTML=renderNews();return;}
+  // drzewka
+  const hint={trans:'Jak patogen przenosi się między ludźmi i regionami. Dopasuj drogi do klimatu i tras.',
+    symp:'Objawy zwiększają śmiertelność i zaraźliwość, ale podnoszą widoczność — a to przyspiesza lek.',
+    res:'Odporności chronią przed klimatem i spowalniają leczenie.',
+    spec:'Unikalne zdolności: ukrywanie, sabotaż badań i moce zależne od typu patogenu.'};
+  let h=`<div class="treehint">${hint[tab]}</div>`;
+  const list=UP.filter(u=>u.tree===tab && (!u.p||u.p===G.cfg.path));
+  for(const u of list){
+    const bought=G.bought.has(u.id), mut=G.mutated.has(u.id), can=canBuy(u), cost=costOf(u), afford=G.pe>=cost;
+    const cls=bought?'bought':(can?'':'locked');
+    h+=`<div class="node ${cls} ${mut?'mut':''}" data-up="${u.id}">
+      <div class="nic">${u.ic}</div>
+      <div class="ninf">
+        <div class="nt">${u.nm}
+          ${bought?'<span class="pill on">AKTYWNE</span>':''}
+          ${mut?'<span class="pill mut">MUTACJA</span>':''}
+          ${!bought&&!can?'<span class="pill">🔒 wymaga poprzednika</span>':''}
+        </div>
+        <div class="nd">${u.ds}</div>
+        <div class="eff">${effChips(u.e)}</div>
+      </div>
+      <div class="buy">`;
+    if(mut){
+      h+=`<div class="cost" style="color:var(--acc)">darmowe</div>
+          <button class="bbtn" data-confirm="${u.id}">Zatwierdź</button>
+          <button class="bbtn devolve" data-dev="${u.id}">Cofnij</button>`;
+    }else if(bought){
+      h+= (u.tree==='symp')?`<button class="bbtn devolve" data-dev="${u.id}">Cofnij</button>`:`<div class="cost" style="color:var(--acc-dim)">✓</div>`;
+    }else{
+      h+=`<div class="cost">🧬 ${cost}</div><button class="bbtn" data-buy="${u.id}" ${(can&&afford)?'':'disabled'}>Rozwiń</button>`;
+    }
+    h+=`</div></div>`;
+  }
+  body.innerHTML=h;
+  body.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>{if(buy(UPMAP[b.dataset.buy])){renderSheet(tab);syncHUD();refreshAffordBadges();}});
+  body.querySelectorAll('[data-confirm]').forEach(b=>b.onclick=()=>{const id=b.dataset.confirm;if(G.mutated.has(id)){G.mutated.delete(id);G.bought.add(id);recompute();toast('g',`Ustabilizowano: ${UPMAP[id].nm}`);}renderSheet(tab);syncHUD();refreshAffordBadges();});
+  body.querySelectorAll('[data-dev]').forEach(b=>b.onclick=()=>{devolve(b.dataset.dev);renderSheet(tab);syncHUD();refreshAffordBadges();});
+}
+
+function renderWorld(){
+  const tt=totals();const s=G.stats;
+  const infU=Math.max(0.0001,s.inf), lethU=s.leth, sevU=s.sev;
+  let h=`<div class="wstat">
+    <div class="box g"><div class="l">Zaraźliwość</div><div class="v">${(infU).toFixed(1)}</div></div>
+    <div class="box r"><div class="l">Śmiertelność</div><div class="v">${(lethU).toFixed(1)}</div></div>
+    <div class="box a"><div class="l">Nasilenie</div><div class="v">${(sevU).toFixed(0)}</div></div>
+    <div class="box b"><div class="l">Świadomość</div><div class="v">${Math.round(G.aware)}%</div></div>
+  </div>
+  <canvas id="chart"></canvas>
+  <div class="wstat">
+    <div class="box"><div class="l">Zdrowi</div><div class="v" style="color:var(--acc)">${fmt(tt.alive)}</div></div>
+    <div class="box"><div class="l">Zakażeni</div><div class="v" style="color:var(--amber)">${fmt(tt.inf)}</div></div>
+    <div class="box"><div class="l">Zgony</div><div class="v" style="color:var(--red)">${fmt(tt.dead)}</div></div>
+    <div class="box"><div class="l">Uodpornieni</div><div class="v" style="color:var(--blue)">${fmt(tt.vac)}</div></div>
+  </div>
+  <h4 style="margin:6px 0 8px;font-size:14px">Regiony (${REGIONS.filter(r=>G.regs[r.id].i+G.regs[r.id].d>0).length}/${REGIONS.length} dotkniętych)</h4>`;
+  const sorted=[...REGIONS].sort((a,b)=>{const A=G.regs[a.id],B=G.regs[b.id];return (B.i+B.d)-(A.i+A.d);});
+  for(const r of sorted){
+    const st=G.regs[r.id];const infFrac=clamp((st.i+st.d+st.v)/r.pop,0,1),deadFrac=clamp(st.d/r.pop,0,1);
+    let col=infFrac<0.001?(st.react>40?'#5ab6ff':'#45e0a0'):(deadFrac>0.4?'#ff5d6c':infFrac>0.5?'#ff8a4d':'#ffc24d');
+    h+=`<div class="rrow">
+      <span class="rdot" style="background:${col}"></span>
+      <div class="rn"><div class="a">${r.nm}</div><div class="b">${fmt(r.pop)} os. · ${r.cl.join('/')}${r.isl?' · wyspa':''}${st.locked?' · 🔒lockdown':''}</div></div>
+      <div class="rbar"><i style="width:${infFrac*100}%"></i><b style="width:${deadFrac*100}%"></b></div>
+      <div class="rv"><span class="i">${pct(infFrac)}</span></div>
+    </div>`;
+  }
+  return h;
+}
+function bindWorld(){
+  const c=$('#chart');if(!c)return;
+  const w=c.clientWidth||300,hh=120;const dp=Math.min(2,window.devicePixelRatio||1);
+  c.width=w*dp;c.height=hh*dp;const g=c.getContext('2d');g.setTransform(dp,0,0,dp,0,0);
+  g.clearRect(0,0,w,hh);
+  const H=G.history;if(H.length<2){g.fillStyle='#5f7187';g.font='12px IBM Plex Sans';g.textAlign='center';g.fillText('Zbieranie danych…',w/2,hh/2);return;}
+  const maxDay=H[H.length-1].day||1;const pad=6;
+  const X=d=>pad+(d/maxDay)*(w-pad*2);
+  const Yp=G.totalPop;const Y=v=>hh-pad-(v/Yp)*(hh-pad*2);
+  // siatka
+  g.strokeStyle='rgba(255,255,255,.05)';g.lineWidth=1;for(let i=0;i<=4;i++){const y=pad+i*(hh-pad*2)/4;g.beginPath();g.moveTo(pad,y);g.lineTo(w-pad,y);g.stroke();}
+  const area=(key,stroke,fill)=>{
+    g.beginPath();H.forEach((p,i)=>{const x=X(p.day),y=Y(p[key]);i?g.lineTo(x,y):g.moveTo(x,y);});
+    g.lineTo(X(H[H.length-1].day),hh-pad);g.lineTo(X(H[0].day),hh-pad);g.closePath();g.fillStyle=fill;g.fill();
+    g.beginPath();H.forEach((p,i)=>{const x=X(p.day),y=Y(p[key]);i?g.lineTo(x,y):g.moveTo(x,y);});g.strokeStyle=stroke;g.lineWidth=1.6;g.stroke();
+  };
+  area('inf','#ffc24d','rgba(255,194,77,.14)');
+  area('dead','#ff5d6c','rgba(255,93,108,.18)');
+  // linia leku
+  g.beginPath();H.forEach((p,i)=>{const x=X(p.day),y=hh-pad-(p.cure/100)*(hh-pad*2);i?g.lineTo(x,y):g.moveTo(x,y);});g.strokeStyle='#5ab6ff';g.lineWidth=1.4;g.setLineDash([4,3]);g.stroke();g.setLineDash([]);
+  g.fillStyle='#8597ab';g.font='9px Chakra Petch';g.textAlign='left';g.fillText('zakażeni',pad+2,11);g.fillStyle='#ff5d6c';g.fillText('• zgony',pad+58,11);g.fillStyle='#5ab6ff';g.fillText('• lek',pad+108,11);
+}
+
+function renderNews(){
+  if(!G.news.length)return '<p class="lead">Brak doniesień. Świat jeszcze śpi…</p>';
+  return G.news.map(n=>`<div class="nitem ${n.kind}">
+    <div class="ni">${n.ic}</div>
+    <div class="nx"><div class="h">${n.h}<span class="dd">dzień ${n.day}</span></div><div class="p">${n.p}</div></div>
+  </div>`).join('');
+}
+
+/* ====================== REGION POPUP ====================== */
+function showRegion(rid,sx,sy){
+  const r=RMAP[rid],st=G.regs[rid];
+  const pop=r.pop;const infFrac=clamp((st.i+st.d+st.v)/pop,0,1);
+  const clNames={zimny:'❄️ zimny',goracy:'🔥 gorący',suchy:'🏜️ suchy',wilgotny:'💧 wilgotny',umiarkowany:'🌤️ umiarkowany'};
+  const lvl=(n)=>'●'.repeat(n)+'○'.repeat(3-n);
+  const pop2=$('#rpop');
+  pop2.innerHTML=`<button class="close2" id="rpopClose">✕</button>
+    <div class="rh">${r.isl?'🏝️':'📍'} ${r.nm}</div>
+    <div class="rtags">${r.cl.map(c=>`<span class="tg">${clNames[c]||c}</span>`).join('')}${st.locked?'<span class="tg" style="color:var(--blue)">🔒 lockdown</span>':''}${st.closed?'<span class="tg" style="color:var(--blue)">granice zamknięte</span>':''}</div>
+    <div class="rgrid">
+      <span class="k">Populacja</span><span class="v">${fmt(pop)}</span>
+      <span class="k">Zakażeni</span><span class="v" style="color:var(--amber)">${fmt(st.i)}</span>
+      <span class="k">Zgony</span><span class="v" style="color:var(--red)">${fmt(st.d)}</span>
+      <span class="k">Zdrowi</span><span class="v" style="color:var(--acc)">${fmt(st.h)}</span>
+      <span class="k">Uodpornieni</span><span class="v" style="color:var(--blue)">${fmt(st.v)}</span>
+      <span class="k">Zamożność</span><span class="v">${lvl(r.w)}</span>
+      <span class="k">Gęstość</span><span class="v">${lvl(r.d)}</span>
+      <span class="k">Opieka zdr.</span><span class="v">${lvl(r.h)}</span>
+      <span class="k">Lotniska</span><span class="v">${lvl(r.ap)}</span>
+      <span class="k">Porty</span><span class="v">${lvl(r.pt)}</span>
+    </div>
+    <div class="rmeters">
+      <div class="barline"><span class="lab" style="width:60px">Zakażeni</span><div class="bar inf"><i style="width:${infFrac*100}%"></i></div></div>
+      <div class="barline"><span class="lab" style="width:60px">Reakcja</span><div class="bar cure"><i style="width:${st.react}%"></i></div></div>
+    </div>`;
+  pop2.style.display='block';
+  // pozycja
+  const wrap=$('#mapwrap').getBoundingClientRect();
+  let px=sx-wrap.left-115, py=sy-wrap.top-pop2.offsetHeight-14;
+  px=clamp(px,8,wrap.width-238); if(py<8)py=sy-wrap.top+18; py=clamp(py,8,wrap.height-pop2.offsetHeight-8);
+  pop2.style.left=px+'px';pop2.style.top=py+'px';
+  $('#rpopClose').onclick=()=>pop2.style.display='none';
+}
+
+/* ====================== INTERAKCJA MAPY ====================== */
+function mapTap(e){
+  const rect=mapC.getBoundingClientRect();
+  const cx=(e.touches?e.touches[0].clientX:e.clientX)-rect.left;
+  const cy=(e.touches?e.touches[0].clientY:e.clientY)-rect.top;
+  if(tapBubble(cx,cy)){syncHUD();return;}
+  // region?
+  let best=null,bd=1e9;
+  for(const r of REGIONS){const s=worldToScreen(r.x,r.y);const d=Math.hypot(cx-s.x,cy-s.y);if(d<bd){bd=d;best=r;}}
+  if(best&&bd<30){
+    const gx=(e.touches?e.touches[0].clientX:e.clientX),gy=(e.touches?e.touches[0].clientY:e.clientY);
+    showRegion(best.id,gx,gy);
+  }else{$('#rpop').style.display='none';}
+}
+
+/* ====================== PRĘDKOŚĆ ====================== */
+function setSpeed(sp){
+  G.speed=sp;running=sp>0 && !G.ended;
+  $$('#speedBox button').forEach(b=>b.classList.toggle('on',+b.dataset.sp===sp));
+}
+
+/* ====================== TOAST ====================== */
+function toast(kind,txt){
+  const t=document.createElement('div');t.className='toast '+kind;t.textContent=txt;
+  $('#toasts').appendChild(t);setTimeout(()=>t.remove(),3400);
+}
+
+/* ====================== ZAPIS ====================== */
+function autosave(){
+  try{
+    const save={v:1,cfg:G.cfg,day:G.day,pe:G.pe,regs:G.regs,bought:[...G.bought],mutated:[...G.mutated],
+      cure:G.cure,aware:G.aware,news:G.news.slice(0,30),history:G.history.slice(-120),
+      nextBubble:G.nextBubble,nextMutDay:G.nextMutDay,peakInf:G.peakInf,peakInfDay:G.peakInfDay};
+    localStorage.setItem('pz_save',JSON.stringify(save));
+  }catch(e){}
+}
+function loadSave(){
+  try{const raw=localStorage.getItem('pz_save');if(!raw)return null;return JSON.parse(raw);}catch(e){return null;}
+}
+function resumeGame(sv){
+  newGame(sv.cfg);
+  G.day=sv.day;G.pe=sv.pe;G.regs=sv.regs;G.bought=new Set(sv.bought);G.mutated=new Set(sv.mutated);
+  G.cure=sv.cure;G.aware=sv.aware;G.news=sv.news||[];G.history=sv.history||[];
+  G.peakInf=sv.peakInf||0;G.peakInfDay=sv.peakInfDay||0;
+  recompute();
+}
+
+/* ====================== NAWIGACJA EKRANÓW ====================== */
+function show(id){$$('.screen').forEach(s=>s.classList.add('hide'));if(id)$(id).classList.remove('hide');}
+function showGameUI(on){
+  ['#hud','#mapwrap','#ticker','#tabs'].forEach(s=>$(s).classList.toggle('hide',!on));
+}
+
+/* ====================== KONFIGURATOR (setup) ====================== */
+let SETUP={step:0,diff:'normalny',path:'wirus',genes:[],start:'na'};
+function startSetup(){
+  SETUP={step:0,diff:'normalny',path:'wirus',genes:[],start:null};
+  show('#scrSetup');showGameUI(false);renderSetup();
+}
+function renderSetup(){
+  $$('.steps .dot').forEach((d,i)=>d.classList.toggle('on',i<=SETUP.step));
+  $$('.step').forEach(s=>s.style.display=(+s.dataset.step===SETUP.step)?'block':'none');
+  $('#btnBack').style.visibility=SETUP.step===0?'hidden':'visible';
+  $('#btnNext').textContent=SETUP.step===3?'☣ WYPUŚĆ PATOGEN':'Dalej →';
+  if(SETUP.step===0)renderDiff();
+  if(SETUP.step===1)renderPaths();
+  if(SETUP.step===2)renderGenes();
+  if(SETUP.step===3)renderPick();
+}
+function renderDiff(){
+  $('#diffGrid').innerHTML=DIFFS.map(d=>`<button class="opt ${SETUP.diff===d.id?'sel':''}" data-diff="${d.id}">
+    <div class="nm">${d.nm}</div><div class="ds">${d.ds}</div>
+    <div class="diff">${[0,1,2,3].map(i=>`<i class="${i<d.dots?'on':''}"></i>`).join('')}</div>
+  </button>`).join('');
+  $$('#diffGrid [data-diff]').forEach(b=>b.onclick=()=>{SETUP.diff=b.dataset.diff;renderDiff();});
+}
+function renderPaths(){
+  $('#pathGrid').innerHTML=Object.entries(PATHOGENS).map(([id,p])=>`<button class="opt ${SETUP.path===id?'sel':''}" data-path="${id}">
+    <span class="tag">${['','łatwy','średni','trudny','ekspert'][p.diff]||''}</span>
+    <div class="ic">${p.ic}</div><div class="nm">${p.nm}</div><div class="ds">${p.ds}</div>
+  </button>`).join('');
+  $$('#pathGrid [data-path]').forEach(b=>b.onclick=()=>{SETUP.path=b.dataset.path;renderPaths();});
+}
+function renderGenes(){
+  $('#geneCount').textContent=SETUP.genes.length;
+  $('#geneGrid').innerHTML=Object.entries(GENES).map(([id,g])=>{
+    const sel=SETUP.genes.includes(id);const dis=!sel&&SETUP.genes.length>=3;
+    return `<button class="opt ${sel?'sel':''} ${dis?'lock':''}" data-gene="${id}">
+      <div class="ic">${g.ic}</div><div class="nm">${g.nm}</div><div class="ds">${g.ds}</div>
+    </button>`;}).join('');
+  $$('#geneGrid [data-gene]').forEach(b=>b.onclick=()=>{
+    const id=b.dataset.gene;const i=SETUP.genes.indexOf(id);
+    if(i>=0)SETUP.genes.splice(i,1);else if(SETUP.genes.length<3)SETUP.genes.push(id);
+    renderGenes();
+  });
+}
+let pickCtx;
+function renderPick(){
+  const sel=$('#pickSel');
+  sel.innerHTML='<option value="">— wybierz region —</option>'+REGIONS.map(r=>`<option value="${r.id}" ${SETUP.start===r.id?'selected':''}>${r.nm}${r.isl?' (wyspa)':''}</option>`).join('');
+  sel.onchange=()=>{SETUP.start=sel.value||null;$('#pickName').textContent=sel.value?RMAP[sel.value].nm:'— wybierz region —';drawPick();};
+  const c=$('#pickMap');const w=c.clientWidth,h=220,dp=Math.min(2,devicePixelRatio||1);
+  c.width=w*dp;c.height=h*dp;pickCtx=c.getContext('2d');pickCtx.setTransform(dp,0,0,dp,0,0);
+  c._scale=Math.min(w/MW,h/MH);c._ox=(w-MW*c._scale)/2;c._oy=(h-MH*c._scale)/2;
+  c.onclick=(e)=>{const rect=c.getBoundingClientRect();const cx=e.clientX-rect.left,cy=e.clientY-rect.top;
+    let best=null,bd=1e9;for(const r of REGIONS){const sx=c._ox+r.x*c._scale,sy=c._oy+r.y*c._scale;const d=Math.hypot(cx-sx,cy-sy);if(d<bd){bd=d;best=r;}}
+    if(best&&bd<26){SETUP.start=best.id;$('#pickName').textContent=best.nm;sel.value=best.id;drawPick();}};
+  drawPick();
+}
+function drawPick(){
+  const c=$('#pickMap'),g=pickCtx;if(!g)return;const w=c.clientWidth,h=220;
+  g.clearRect(0,0,w,h);g.fillStyle='#071019';g.fillRect(0,0,w,h);
+  const S=c._scale,OX=c._ox,OY=c._oy;const W=(x,y)=>({x:OX+x*S,y:OY+y*S});
+  for(const poly of LAND){g.beginPath();poly.forEach((p,i)=>{const s=W(p[0],p[1]);i?g.lineTo(s.x,s.y):g.moveTo(s.x,s.y);});g.closePath();g.fillStyle='#0f1d26';g.fill();g.strokeStyle='rgba(80,140,120,.18)';g.stroke();}
+  for(const r of REGIONS){const s=W(r.x,r.y);const base=5+Math.log10(r.pop/1e6+1)*1.8;
+    g.beginPath();g.arc(s.x,s.y,base,0,6.29);g.fillStyle=SETUP.start===r.id?'#45e0a0':'#5f7187';g.fill();
+    if(SETUP.start===r.id){g.beginPath();g.arc(s.x,s.y,base+5,0,6.29);g.strokeStyle='#45e0a0';g.lineWidth=2;g.stroke();}}
+}
+
+/* ====================== START GRY ====================== */
+function launch(){
+  const cfg={diff:SETUP.diff,path:SETUP.path,genes:SETUP.genes.slice(),start:SETUP.start};
+  newGame(cfg);
+  show(null);showGameUI(true);
+  $('#hudName').textContent=G.path.nm+' • '+(G.cfg.pathName||'Patogen-Σ');
+  $('#hudType').textContent=`${G.diff.nm} · start: ${RMAP[cfg.start].nm}`;
+  resizeMap();setSpeed(1);G.selStart=null;
+  closeSheet();updateTicker();refreshAffordBadges();
+  if(!raf){lastT=performance.now();raf=requestAnimationFrame(loop);}
+}
+
+/* ====================== EKRAN KOŃCA ====================== */
+function showEnd(result,title,sub,grade){
+  const tt=totals();
+  const gcol={S:'#45e0a0',A:'#45e0a0',B:'#9be04d',C:'#ffc24d',D:'#ff8a4d',E:'#ff5d6c',F:'#ff5d6c'}[grade]||'#ff5d6c';
+  $('#endGrade').textContent=grade;$('#endGrade').style.color=gcol;
+  $('#endTitle').textContent=title;$('#endTitle').style.color=result==='win'?'var(--red)':'var(--blue)';
+  $('#endSub').textContent=sub;
+  $('#endStats').innerHTML=`
+    <div class="s"><div class="l">Wynik</div><div class="v" style="color:${gcol}">${G.score.toLocaleString('pl')}</div></div>
+    <div class="s"><div class="l">Dni</div><div class="v">${G.day}</div></div>
+    <div class="s"><div class="l">Zgony</div><div class="v" style="color:var(--red)">${fmt(tt.dead)}</div></div>
+    <div class="s"><div class="l">Zakażono łącznie</div><div class="v" style="color:var(--amber)">${pct((G.totalPop-tt.alive)/G.totalPop)}</div></div>
+    <div class="s"><div class="l">Postęp leku</div><div class="v" style="color:var(--blue)">${Math.round(G.cure)}%</div></div>
+    <div class="s"><div class="l">Szczyt świadom.</div><div class="v">${Math.round(G.aware)}%</div></div>`;
+  $('#endAch').innerHTML=ACHS.map(a=>`<div class="ach ${G.achievements.has(a.id)?'get':'locked'}">
+    <div class="ai">${G.achievements.has(a.id)?a.ic:'🔒'}</div>
+    <div><div class="at">${a.t}</div><div class="ad">${a.d}</div></div></div>`).join('');
+  try{localStorage.removeItem('pz_save');}catch(e){}
+  show('#scrEnd');showGameUI(false);
+}
+
+/* ====================== POMOC / OSIĄGNIĘCIA ====================== */
+function showHow(){
+  $('#infoTitle').textContent='Jak grać';
+  $('#infoBody').innerHTML=`
+   <div class="card"><h3>🎯 Cel</h3><p class="lead">Zaraź całą populację świata, zanim globalne laboratoria dokończą <b style="color:var(--blue)">lek</b> (niebieski pasek). Gdy lek osiągnie 100% — przegrywasz.</p></div>
+   <div class="card"><h3>🧬 DNA i ewolucja</h3><p class="lead">Za rozprzestrzenianie zdobywasz <b style="color:var(--acc)">DNA</b>. Wydawaj je w zakładkach <b>Transmisja</b>, <b>Objawy</b>, <b>Odporność</b> i <b>Specjalne</b>. <b>Łap bąbelki</b> pojawiające się nad zakażonymi regionami — zielone dają DNA, niebieskie spowalniają lek.</p></div>
+   <div class="card"><h3>⚖️ Kluczowy dylemat</h3><p class="lead">Objawy zwiększają śmiertelność i zaraźliwość, ale podnoszą <b>widoczność</b> — a świat szybciej zaczyna badać lek i zamykać granice. Na początku rozwijaj <b>ciche</b> drogi przenoszenia, zaraź świat, a dopiero potem dodawaj śmiercionośne objawy.</p></div>
+   <div class="card"><h3>🌡️ Klimat i trasy</h3><p class="lead">Regiony mają klimat (zimny, gorący, suchy, wilgotny) i są połączone trasami <b>lądowymi</b>, <b>morskimi</b> i <b>lotniczymi</b>. Wyspy dotrzesz tylko drogą morską lub powietrzną. Dopasuj odporności do klimatu i drogi przenoszenia do typów tras.</p></div>
+   <div class="card"><h3>🧫 Mutacje</h3><p class="lead">Patogen czasem mutuje sam, dodając darmowy objaw (fioletowy). Zwiększa to widoczność — możesz go <b>zatwierdzić</b> albo <b>cofnąć</b> w zakładce Objawy.</p></div>
+   <div class="card"><h3>⏩ Tempo</h3><p class="lead">Steruj prędkością czasu w prawym górnym rogu: pauza, 1×, 2×, 3×. Gra zapisuje się automatycznie — możesz ją wznowić z menu.</p></div>`;
+  show('#scrInfo');showGameUI(false);
+}
+function showAch(){
+  let saved=[];try{saved=JSON.parse(localStorage.getItem('pz_ach')||'[]');}catch(e){}
+  const set=new Set(saved);
+  $('#infoTitle').textContent='Osiągnięcia';
+  $('#infoBody').innerHTML=`<p class="lead" style="margin-bottom:12px">Zdobyte w dowolnej rozgrywce: ${set.size}/${ACHS.length}</p>`+
+    ACHS.map(a=>`<div class="ach ${set.has(a.id)?'get':'locked'}"><div class="ai">${set.has(a.id)?a.ic:'🔒'}</div><div><div class="at">${a.t}</div><div class="ad">${a.d}</div></div></div>`).join('');
+  show('#scrInfo');showGameUI(false);
+}
+
+/* ====================== PODPIĘCIE ZDARZEŃ UI ====================== */
+$('#btnNew').onclick=startSetup;
+$('#btnContinue').onclick=()=>{const sv=loadSave();if(!sv){toast('a','Brak zapisanej gry');return;}resumeGame(sv);show(null);showGameUI(true);$('#hudName').textContent=G.path.nm;$('#hudType').textContent=`${G.diff.nm} · start: ${RMAP[G.cfg.start].nm}`;resizeMap();setSpeed(1);closeSheet();updateTicker();refreshAffordBadges();if(!raf){lastT=performance.now();raf=requestAnimationFrame(loop);}};
+$('#btnHow').onclick=showHow;
+$('#btnAch').onclick=showAch;
+$('#btnInfoBack').onclick=()=>{ if(G&&!G.ended){show(null);showGameUI(true);} else show('#scrMenu'); };
+$('#btnBack').onclick=()=>{if(SETUP.step>0){SETUP.step--;renderSetup();}else show('#scrMenu');};
+$('#btnNext').onclick=()=>{
+  if(SETUP.step<3){SETUP.step++;renderSetup();}
+  else{ if(!SETUP.start){toast('a','Wybierz region startowy');return;} launch(); }
+};
+$('#btnAgain').onclick=startSetup;
+$('#btnMenu2').onclick=()=>{show('#scrMenu');showGameUI(false);};
+$('#shClose').onclick=closeSheet;
+$('.sh-grip').onclick=closeSheet;
+
+$$('#tabs button').forEach(b=>b.onclick=()=>{
+  const tab=b.dataset.tab;
+  if(curTab===tab){closeSheet();}else{openSheet(tab);}
+});
+$$('#speedBox button').forEach(b=>b.onclick=()=>{ if(G) setSpeed(+b.dataset.sp); });
+
+mapC.addEventListener('click',mapTap);
+window.addEventListener('resize',()=>{resizeMap();if(SETUP&&SETUP.step===3)renderPick();});
+
+// zamknij popup regionu przy kliknięciu poza
+document.addEventListener('click',(e)=>{
+  const pop=$('#rpop');if(pop.style.display==='block'&&!pop.contains(e.target)&&e.target!==mapC){/* mapTap zarządza */}
+});
+
+// menu kontekstowe: długie przytrzymanie prędkości = pauza (pomijamy)
+// inicjalny render menu
+show('#scrMenu');showGameUI(false);
+// aktywny przycisk kontynuacji
+(function(){const sv=loadSave();if(!sv)$('#btnContinue').setAttribute('disabled','');})();
+
+// wznów pętlę rysowania tła menu (opcjonalnie nie potrzebne)
+</script>
