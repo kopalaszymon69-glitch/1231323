@@ -1,5 +1,6 @@
 #pragma once
 
+#include <juce_audio_basics/juce_audio_basics.h>
 #include <juce_audio_processors/juce_audio_processors.h>
 
 #include <array>
@@ -59,6 +60,10 @@ public:
     // Formant-hold levels as last published by the audio thread
     std::array<float, 16> holdLevels() const;
 
+    // On-screen keyboard (message thread): notes are passed to the audio thread through a
+    // lock-free single-producer/single-consumer FIFO.
+    juce::MidiKeyboardState& keyboardState() noexcept { return keyboardState_; }
+
     static constexpr int kMaxMidiEventsPerBlock = 4096;
 
 private:
@@ -90,6 +95,18 @@ private:
 
     DwgsOverrides dwgsOverrides_;
     juce::CriticalSection dwgsLock_; // message-thread side only
+
+    struct UiKeyListener final : juce::MidiKeyboardState::Listener {
+        explicit UiKeyListener(KestrelProcessor& p) : owner(p) {}
+        void handleNoteOn(juce::MidiKeyboardState*, int ch, int note, float vel) override { owner.pushUiNote(0x90 | ((ch - 1) & 15), note, juce::jlimit(1, 127, int(vel * 127.0f))); }
+        void handleNoteOff(juce::MidiKeyboardState*, int ch, int note, float) override { owner.pushUiNote(0x80 | ((ch - 1) & 15), note, 0); }
+        KestrelProcessor& owner;
+    };
+    void pushUiNote(int status, int note, int vel);
+    juce::MidiKeyboardState keyboardState_;
+    UiKeyListener uiKeyListener_ { *this };
+    juce::AbstractFifo uiFifo_ { 256 };
+    std::array<uint32_t, 256> uiNotes_ {};
 };
 
 } // namespace kestrel::plugin

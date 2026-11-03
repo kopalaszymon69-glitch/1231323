@@ -96,12 +96,21 @@ KestrelProcessor::KestrelProcessor()
         currentProgram_ = 0;
         loadProgram(bank_.entry(0).program);
     }
+    keyboardState_.addListener(&uiKeyListener_);
     // Hosts may query latency before prepareToPlay: report the value for the typical case.
     setLatencySamples(Engine::latencyFor(48000.0, int(raw_[size_t(pG(Quality))]->load())));
     startTimerHz(10);
 }
 
-KestrelProcessor::~KestrelProcessor() { stopTimer(); }
+KestrelProcessor::~KestrelProcessor() {
+    stopTimer();
+    keyboardState_.removeListener(&uiKeyListener_);
+}
+
+void KestrelProcessor::pushUiNote(int status, int note, int vel) {
+    const auto scope = uiFifo_.write(1);
+    if (scope.blockSize1 > 0) uiNotes_[size_t(scope.startIndex1)] = uint32_t(status) | (uint32_t(note & 127) << 8) | (uint32_t(vel & 127) << 16);
+}
 
 bool KestrelProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
     const auto out = layouts.getMainOutputChannelSet();
@@ -158,6 +167,22 @@ void KestrelProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::Midi
 
     // ---- MIDI (sample-accurate; long system-exclusive messages are ignored)
     int ne = 0;
+    {   // on-screen keyboard notes (lock-free FIFO from the message thread) at the block start
+        const auto scope = uiFifo_.read(uiFifo_.getNumReady());
+        auto take = [&](int start, int count) {
+            for (int k = 0; k < count && ne < kMaxMidiEventsPerBlock; ++k) {
+                const uint32_t m = uiNotes_[size_t(start + k)];
+                MidiEvent& e = midi_[size_t(ne++)];
+                e.offset = 0;
+                e.size = 3;
+                e.data[0] = uint8_t(m & 0xFF);
+                e.data[1] = uint8_t((m >> 8) & 0x7F);
+                e.data[2] = uint8_t((m >> 16) & 0x7F);
+            }
+        };
+        take(scope.startIndex1, scope.blockSize1);
+        take(scope.startIndex2, scope.blockSize2);
+    }
     for (const auto meta : midi) {
         if (meta.numBytes < 1 || meta.numBytes > 3) continue;
         if (ne >= kMaxMidiEventsPerBlock) break;

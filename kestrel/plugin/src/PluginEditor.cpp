@@ -5,30 +5,23 @@ namespace kestrel::plugin {
 using namespace kestrel::ui;
 
 namespace {
-constexpr int kCheek = 22, kHeader = 96, kTabs = 30;
+constexpr int kCheek = 24, kHeader = 96, kTabs = 32, kKeys = 74;
 const char* const kTabNames[6] = { "TIMBRE 1", "TIMBRE 2", "MODULATION", "FX / ARPEG", "VOCODER", "GLOBAL" };
 
 void paintWood(juce::Graphics& g, juce::Rectangle<float> r) {
-    juce::ColourGradient grad(colours::woodB, r.getX(), r.getY(), colours::woodA, r.getRight(), r.getY(), false);
-    g.setGradientFill(grad);
+    g.drawImageAt(textures::wood(int(r.getWidth()), int(r.getHeight())), int(r.getX()), int(r.getY()));
+    // varnish sheen
+    juce::ColourGradient sheen(juce::Colours::white.withAlpha(0.10f), r.getX(), r.getY(), juce::Colours::white.withAlpha(0.0f), r.getX(), r.getY() + r.getHeight() * 0.4f, false);
+    g.setGradientFill(sheen);
     g.fillRect(r);
-    // procedural grain (deterministic)
-    juce::Random rnd(1234);
-    for (int i = 0; i < 14; ++i) {
-        const float x = r.getX() + rnd.nextFloat() * r.getWidth();
-        juce::Path p;
-        p.startNewSubPath(x, r.getY());
-        for (float y = r.getY(); y < r.getBottom(); y += 40.0f) p.lineTo(x + std::sin(y * 0.013f + float(i)) * 2.5f, y + 40.0f);
-        g.setColour(juce::Colours::black.withAlpha(0.10f + 0.08f * rnd.nextFloat()));
-        g.strokePath(p, juce::PathStrokeType(0.8f + rnd.nextFloat()));
-    }
-    g.setColour(juce::Colours::black.withAlpha(0.35f));
+    g.setColour(juce::Colours::black.withAlpha(0.5f));
     g.drawRect(r, 1.0f);
 }
 } // namespace
 
 // ================================================================== canvas
-EditorCanvas::EditorCanvas(KestrelProcessor& p) : proc_(p) {
+EditorCanvas::EditorCanvas(KestrelProcessor& p)
+    : proc_(p), keyboard_(p.keyboardState(), juce::MidiKeyboardComponent::horizontalKeyboard) {
     auto touch = [this](int idx) { touched(idx); };
     addAndMakeVisible(lcd_);
     addAndMakeVisible(program_);
@@ -55,10 +48,24 @@ EditorCanvas::EditorCanvas(KestrelProcessor& p) : proc_(p) {
     for (int i = 0; i < 6; ++i) {
         tabs_[size_t(i)].setButtonText(kTabNames[i]);
         tabs_[size_t(i)].setClickingTogglesState(false);
+        tabs_[size_t(i)].getProperties().set("led", true);
+        if (i == 1) tabs_[size_t(i)].getProperties().set("ledColour", int(colours::accent2.getARGB()));
+        if (i == 4) tabs_[size_t(i)].getProperties().set("ledColour", int(colours::vocoder.getARGB()));
         tabs_[size_t(i)].onClick = [this, i] { showView(i); };
         addAndMakeVisible(tabs_[size_t(i)]);
         addChildComponent(*views_[size_t(i)]);
     }
+    keyboard_.setAvailableRange(24, 96); // C1..C7
+    keyboard_.setScrollButtonsVisible(false);
+    keyboard_.setOctaveForMiddleC(4); // owner's manual: C4 = note 60
+    keyboard_.setColour(juce::MidiKeyboardComponent::whiteNoteColourId, juce::Colour(0xfff1ebdd));
+    keyboard_.setColour(juce::MidiKeyboardComponent::blackNoteColourId, juce::Colour(0xff1b1a18));
+    keyboard_.setColour(juce::MidiKeyboardComponent::keySeparatorLineColourId, juce::Colour(0xff6b665d));
+    keyboard_.setColour(juce::MidiKeyboardComponent::keyDownOverlayColourId, colours::accent.withAlpha(0.75f));
+    keyboard_.setColour(juce::MidiKeyboardComponent::mouseOverKeyOverlayColourId, colours::accent.withAlpha(0.25f));
+    keyboard_.setColour(juce::MidiKeyboardComponent::shadowColourId, juce::Colours::black.withAlpha(0.45f));
+    keyboard_.setWantsKeyboardFocus(false);
+    addAndMakeVisible(keyboard_);
     showView(0);
 }
 
@@ -104,29 +111,61 @@ void EditorCanvas::refresh() {
 }
 
 void EditorCanvas::paint(juce::Graphics& g) {
-    g.fillAll(colours::panel);
-    // brushed panel texture
-    g.setColour(juce::Colours::white.withAlpha(0.035f));
-    for (int y = 0; y < kH; y += 3) g.drawHorizontalLine(y, 0.0f, float(kW));
+    // brushed metal panel
+    g.drawImageAt(textures::brushedPanel(kW, kH, colours::panel), 0, 0);
+    // header strip (darker anodised band)
+    const auto header = juce::Rectangle<float>(float(kCheek), 0.0f, float(kW - 2 * kCheek), float(kHeader));
+    g.saveState();
+    g.reduceClipRegion(header.toNearestInt());
+    g.drawImageAt(textures::brushedPanel(kW, kHeader, colours::panelDark), 0, 0);
+    g.restoreState();
+    juce::ColourGradient hg(juce::Colours::white.withAlpha(0.08f), 0.0f, 0.0f, juce::Colours::black.withAlpha(0.18f), 0.0f, float(kHeader), false);
+    g.setGradientFill(hg);
+    g.fillRect(header);
+    g.setColour(juce::Colours::black.withAlpha(0.45f));
+    g.drawHorizontalLine(kHeader - 1, header.getX(), header.getRight());
+    g.setColour(juce::Colours::white.withAlpha(0.25f));
+    g.drawHorizontalLine(kHeader, header.getX(), header.getRight());
+    // body shading (light from the top)
+    juce::ColourGradient body(juce::Colours::white.withAlpha(0.05f), 0.0f, float(kHeader), juce::Colours::black.withAlpha(0.10f), 0.0f, float(kH), false);
+    g.setGradientFill(body);
+    g.fillRect(juce::Rectangle<float>(float(kCheek), float(kHeader), float(kW - 2 * kCheek), float(kH - kHeader)));
+    // logo (original wordmark), embossed
+    const auto logoR = juce::Rectangle<float>(header.getX() + 22.0f, 10.0f, 330.0f, 46.0f);
+    g.setFont(fonts::logo(40.0f).withExtraKerningFactor(0.12f));
+    g.setColour(juce::Colours::black.withAlpha(0.45f));
+    g.drawText("KESTREL", logoR.translated(0.0f, 1.5f), juce::Justification::centredLeft);
+    g.setColour(juce::Colour(0xfff3eee3));
+    g.drawText("KESTREL", logoR, juce::Justification::centredLeft);
+    const float wordW = juce::GlyphArrangement::getStringWidth(fonts::logo(40.0f).withExtraKerningFactor(0.12f), "KESTREL");
+    g.setColour(colours::accent);
+    g.drawText("VA", logoR.withTrimmedLeft(wordW + 10.0f), juce::Justification::centredLeft);
+    g.setFont(fonts::print(14.0f).withExtraKerningFactor(0.18f));
+    g.setColour(juce::Colour(0xffded7c9));
+    g.drawText("VIRTUAL ANALOG SYNTHESIZER  /  VOCODER", juce::Rectangle<float>(header.getX() + 24.0f, 56.0f, 320.0f, 16.0f), juce::Justification::centredLeft);
+    g.setFont(fonts::text(10.5f));
+    g.setColour(juce::Colour(0xffbdb5a6));
+    g.drawText("Unofficial instrument modelled on documented 2002 microKORG behaviour", juce::Rectangle<float>(header.getX() + 24.0f, 73.0f, 330.0f, 14.0f), juce::Justification::centredLeft, true);
+    // keyboard well
+    const auto well = juce::Rectangle<float>(float(kCheek + 6), float(kH - kKeys - 12), float(kW - 2 * kCheek - 12), float(kKeys + 8));
+    g.setColour(juce::Colour(0xff1b1a18));
+    g.fillRoundedRectangle(well, 5.0f);
+    draw::inset(g, well, 5.0f, 1.5f);
+    g.setFont(fonts::print(13.0f));
+    g.setColour(juce::Colour(0xffcfc7b8));
+    g.drawFittedText("KEYS", juce::Rectangle<int>(kCheek + 10, kH - kKeys - 6, 44, kKeys), juce::Justification::centred, 1);
+    // wood cheeks + screws
     paintWood(g, { 0.0f, 0.0f, float(kCheek), float(kH) });
     paintWood(g, { float(kW - kCheek), 0.0f, float(kCheek), float(kH) });
-    // header strip
-    auto header = juce::Rectangle<float>(float(kCheek), 0.0f, float(kW - 2 * kCheek), float(kHeader));
-    g.setColour(colours::panelDark);
-    g.fillRect(header);
-    g.setColour(colours::sectionEdge);
-    g.drawHorizontalLine(kHeader - 1, header.getX(), header.getRight());
-    // original logo (text only)
-    g.setColour(juce::Colour(0xfff2ede2));
-    g.setFont(juce::Font(juce::FontOptions(34.0f, juce::Font::bold)).withExtraKerningFactor(0.08f));
-    g.drawText("KESTREL", juce::Rectangle<float>(header.getX() + 18.0f, 14.0f, 200.0f, 40.0f), juce::Justification::centredLeft);
-    g.setColour(colours::accent);
-    g.setFont(juce::Font(juce::FontOptions(34.0f, juce::Font::bold)));
-    g.drawText("VA", juce::Rectangle<float>(header.getX() + 196.0f, 14.0f, 60.0f, 40.0f), juce::Justification::centredLeft);
-    g.setColour(juce::Colour(0xffd9d2c4));
-    g.setFont(KestrelLookAndFeel::labelFont(11.0f, false));
-    g.drawText("VIRTUAL ANALOG SYNTHESIZER / VOCODER", juce::Rectangle<float>(header.getX() + 20.0f, 56.0f, 260.0f, 16.0f), juce::Justification::centredLeft);
-    g.drawText("unofficial - modelled on documented 2002 microKORG behaviour", juce::Rectangle<float>(header.getX() + 20.0f, 72.0f, 330.0f, 14.0f), juce::Justification::centredLeft);
+    for (float sx : { float(kCheek) + 10.0f, float(kW - kCheek) - 10.0f })
+        for (float sy : { 10.0f, float(kH) - 10.0f })
+            draw::screw(g, { sx, sy }, 4.2f, 0.35f + sx * 0.01f + sy * 0.003f);
+    // shadow of the cheeks onto the panel
+    for (int i = 0; i < 6; ++i) {
+        g.setColour(juce::Colours::black.withAlpha(0.06f * float(6 - i) / 6.0f));
+        g.drawVerticalLine(kCheek + i, 0.0f, float(kH));
+        g.drawVerticalLine(kW - kCheek - 1 - i, 0.0f, float(kH));
+    }
 }
 
 void EditorCanvas::resized() {
@@ -138,9 +177,13 @@ void EditorCanvas::resized() {
     mode_->setBounds(724, 46, 110, 44);
     arp_->setBounds(842, 46, 80, 44);
     int tx = x0;
-    for (auto& t : tabs_) { t.setBounds(tx, kHeader + 4, 132, kTabs - 6); tx += 136; }
-    const auto body = juce::Rectangle<int>(x0, kHeader + kTabs + 2, kW - 2 * kCheek - 16, kH - kHeader - kTabs - 10);
+    for (auto& t : tabs_) { t.setBounds(tx, kHeader + 3, 140, kTabs - 4); tx += 144; }
+    const auto body = juce::Rectangle<int>(x0, kHeader + kTabs + 2, kW - 2 * kCheek - 16, kH - kHeader - kTabs - kKeys - 14);
     for (auto& v : views_) v->setBounds(body);
+    keyboard_.setBounds(x0 + 54, kH - kKeys - 6, kW - 2 * kCheek - 16 - 54, kKeys);
+    int whites = 0;
+    for (int n = keyboard_.getRangeStart(); n <= keyboard_.getRangeEnd(); ++n) whites += juce::MidiMessage::isMidiNoteBlack(n) ? 0 : 1;
+    keyboard_.setKeyWidth(float(keyboard_.getWidth() - 2) / float(std::max(1, whites)));
 }
 
 // ================================================================== editor

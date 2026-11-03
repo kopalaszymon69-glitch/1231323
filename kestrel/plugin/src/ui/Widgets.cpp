@@ -30,9 +30,9 @@ Knob::Knob(plugin::KestrelProcessor& p, int index, TouchFn touch, juce::Colour a
 }
 
 void Knob::paint(juce::Graphics& g) {
-    g.setColour(colours::print);
-    g.setFont(KestrelLookAndFeel::labelFont(11.0f));
-    g.drawFittedText(label_.toUpperCase(), getLocalBounds().removeFromTop(14), juce::Justification::centred, 1, 0.8f);
+    g.setFont(fonts::print(13.0f));
+    draw::embossedText(g, label_.toUpperCase(), getLocalBounds().removeFromTop(14).toFloat(), juce::Justification::centred,
+                       colours::print.withAlpha(isEnabled() ? 1.0f : 0.45f));
 }
 
 void Knob::resized() { slider_.setBounds(getLocalBounds().withTrimmedTop(14)); }
@@ -54,9 +54,9 @@ Choice::Choice(plugin::KestrelProcessor& p, int index, TouchFn touch, const juce
 }
 
 void Choice::paint(juce::Graphics& g) {
-    g.setColour(colours::print);
-    g.setFont(KestrelLookAndFeel::labelFont(11.0f));
-    g.drawFittedText(label_.toUpperCase(), getLocalBounds().removeFromTop(14), juce::Justification::centredLeft, 1, 0.8f);
+    g.setFont(fonts::print(13.0f));
+    draw::embossedText(g, label_.toUpperCase(), getLocalBounds().removeFromTop(14).toFloat().withTrimmedLeft(1.0f),
+                       juce::Justification::centredLeft, colours::print.withAlpha(isEnabled() ? 1.0f : 0.45f));
 }
 
 void Choice::resized() { box_.setBounds(getLocalBounds().withTrimmedTop(16).withHeight(24)); }
@@ -77,9 +77,8 @@ Fader::Fader(plugin::KestrelProcessor& p, int index, TouchFn touch, juce::Colour
 }
 
 void Fader::paint(juce::Graphics& g) {
-    g.setColour(colours::print);
-    g.setFont(KestrelLookAndFeel::labelFont(11.0f));
-    g.drawFittedText(label_, getLocalBounds().removeFromTop(14), juce::Justification::centred, 1, 0.8f);
+    g.setFont(fonts::print(13.0f));
+    draw::embossedText(g, label_.toUpperCase(), getLocalBounds().removeFromTop(14).toFloat(), juce::Justification::centred);
 }
 
 void Fader::resized() { slider_.setBounds(getLocalBounds().withTrimmedTop(14)); }
@@ -107,18 +106,26 @@ void Section::resized() {
 }
 
 void Section::paint(juce::Graphics& g) {
-    auto r = getLocalBounds().toFloat().reduced(1.0f);
-    g.setColour(colours::section);
-    g.fillRoundedRectangle(r, 5.0f);
-    g.setColour(colours::sectionEdge);
-    g.drawRoundedRectangle(r, 5.0f, 1.0f);
-    auto t = getLocalBounds().removeFromTop(kTitle).reduced(8, 0);
+    auto r = getLocalBounds().toFloat().reduced(1.5f);
+    // slightly darker, recessed panel area
+    juce::ColourGradient bg(colours::section.brighter(0.04f), 0.0f, r.getY(), colours::section.darker(0.06f), 0.0f, r.getBottom(), false);
+    g.setGradientFill(bg);
+    g.fillRoundedRectangle(r, 6.0f);
+    draw::inset(g, r, 6.0f, 0.9f);
+    // header strip with printed title and accent bar
+    auto head = r.removeFromTop(float(kTitle)).reduced(1.0f, 1.0f);
+    juce::Path hp;
+    hp.addRoundedRectangle(head.getX(), head.getY(), head.getWidth(), head.getHeight(), 5.0f, 5.0f, true, true, false, false);
+    g.setColour(juce::Colours::black.withAlpha(0.10f));
+    g.fillPath(hp);
     g.setColour(accent_);
-    g.fillRect(t.removeFromLeft(4).reduced(0, 5).toFloat());
-    t.removeFromLeft(5);
-    g.setColour(colours::print);
-    g.setFont(KestrelLookAndFeel::labelFont(12.0f));
-    g.drawText(title_.toUpperCase(), t, juce::Justification::centredLeft);
+    g.fillRoundedRectangle(head.getX() + 6.0f, head.getCentreY() - 4.0f, 3.0f, 8.0f, 1.0f);
+    g.setFont(fonts::print(14.5f));
+    draw::embossedText(g, title_.toUpperCase(), head.withTrimmedLeft(14.0f), juce::Justification::centredLeft, colours::print, 0.22f);
+    g.setColour(juce::Colours::black.withAlpha(0.18f));
+    g.drawHorizontalLine(int(head.getBottom()), head.getX() + 4.0f, head.getRight() - 4.0f);
+    g.setColour(juce::Colours::white.withAlpha(0.18f));
+    g.drawHorizontalLine(int(head.getBottom()) + 1, head.getX() + 4.0f, head.getRight() - 4.0f);
 }
 
 // ------------------------------------------------------------------ FlowView
@@ -154,20 +161,36 @@ void FlowView::resized() {
 // ------------------------------------------------------------------ Lcd
 void Lcd::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
-    g.setColour(juce::Colour(0xff121812));
-    g.fillRoundedRectangle(r, 4.0f);
-    r = r.reduced(3.0f);
-    g.setColour(colours::lcdBg);
-    g.fillRoundedRectangle(r, 3.0f);
-    g.setColour(colours::lcdDim.withAlpha(0.35f));
-    for (float y = r.getY() + 2.0f; y < r.getBottom(); y += 3.0f) g.drawHorizontalLine(int(y), r.getX(), r.getRight());
-    g.setColour(colours::lcdText);
-    const juce::Font mono(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), r.getHeight() * 0.36f, juce::Font::bold));
-    g.setFont(mono);
-    auto inner = r.reduced(8.0f, 3.0f);
-    g.drawText(top_, inner.removeFromTop(inner.getHeight() * 0.5f), juce::Justification::centredLeft, true);
-    g.setFont(mono.withHeight(r.getHeight() * 0.40f));
-    g.drawText(bottom_, inner, juce::Justification::centredLeft, true);
+    // bezel
+    juce::ColourGradient bez(juce::Colour(0xff2b2925), 0.0f, r.getY(), juce::Colour(0xff0d0c0b), 0.0f, r.getBottom(), false);
+    g.setGradientFill(bez);
+    g.fillRoundedRectangle(r, 6.0f);
+    g.setColour(juce::Colours::white.withAlpha(0.15f));
+    g.drawRoundedRectangle(r.reduced(0.5f), 6.0f, 0.8f);
+    auto glass = r.reduced(6.0f);
+    juce::ColourGradient bg(colours::lcdBg.brighter(0.15f), glass.getCentreX(), glass.getCentreY(), colours::lcdBg.darker(0.5f), glass.getX(), glass.getY(), true);
+    g.setGradientFill(bg);
+    g.fillRoundedRectangle(glass, 3.0f);
+    // pixel grid
+    g.setColour(juce::Colours::black.withAlpha(0.22f));
+    for (float x = glass.getX(); x < glass.getRight(); x += 2.5f) g.drawVerticalLine(int(x), glass.getY(), glass.getBottom());
+    for (float y = glass.getY(); y < glass.getBottom(); y += 2.5f) g.drawHorizontalLine(int(y), glass.getX(), glass.getRight());
+    auto inner = glass.reduced(10.0f, 5.0f);
+    auto line = [&](const juce::String& s, juce::Rectangle<float> a, float h) {
+        g.setFont(fonts::lcd(h));
+        g.setColour(colours::lcdText.withAlpha(0.18f)); // glow
+        for (auto d : { juce::Point<float>(-1.2f, 0), juce::Point<float>(1.2f, 0), juce::Point<float>(0, -1.2f), juce::Point<float>(0, 1.2f) })
+            g.drawText(s, a.translated(d.x, d.y), juce::Justification::centredLeft, true);
+        g.setColour(colours::lcdText);
+        g.drawText(s, a, juce::Justification::centredLeft, true);
+    };
+    line(top_, inner.removeFromTop(inner.getHeight() * 0.5f), glass.getHeight() * 0.36f);
+    line(bottom_, inner, glass.getHeight() * 0.36f);
+    // glass reflection
+    juce::ColourGradient refl(juce::Colours::white.withAlpha(0.10f), 0.0f, glass.getY(), juce::Colours::white.withAlpha(0.0f), 0.0f, glass.getCentreY(), false);
+    g.setGradientFill(refl);
+    g.fillRoundedRectangle(glass.withHeight(glass.getHeight() * 0.5f), 3.0f);
+    draw::inset(g, glass, 3.0f, 1.4f);
 }
 
 // ------------------------------------------------------------------ EnvelopeView
@@ -175,6 +198,9 @@ void EnvelopeView::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat().reduced(2.0f);
     g.setColour(colours::lcdBg);
     g.fillRoundedRectangle(r, 3.0f);
+    g.setColour(colours::lcdDim.withAlpha(0.6f));
+    for (int i = 1; i < 4; ++i) g.drawHorizontalLine(int(r.getY() + r.getHeight() * float(i) / 4.0f), r.getX() + 2.0f, r.getRight() - 2.0f);
+    draw::inset(g, r, 3.0f, 1.0f);
     auto v = [&](int off) { return double(proc_.param(a_ + off)->convertFrom0to1(proc_.param(a_ + off)->getValue())); };
     const double A = mapping::egTimeSeconds(v(0)), D = mapping::egTimeSeconds(v(1)), S = mapping::egSustainLevel(v(2)), R = mapping::egTimeSeconds(v(3));
     // display on a compressed (sqrt) time axis so long and short segments are both visible

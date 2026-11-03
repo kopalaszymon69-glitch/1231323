@@ -183,6 +183,7 @@ void RoutingMatrix::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
     g.setColour(colours::lcdBg);
     g.fillRoundedRectangle(r, 4.0f);
+    draw::inset(g, r, 4.0f, 1.2f);
     const float left = 92.0f, top = 46.0f;
     const float cw = (r.getWidth() - left - 8.0f) / 8.0f, ch = (r.getHeight() - top - 8.0f) / 8.0f;
     g.setFont(KestrelLookAndFeel::labelFont(11.0f, false));
@@ -232,7 +233,7 @@ ModView::ModView(plugin::KestrelProcessor& p, TouchFn t) : View(p, std::move(t))
         owned_.push_back(std::move(m));
         auto l = std::make_unique<juce::Label>();
         routes_[tm] = l.get();
-        routes_[tm]->setFont(juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 12.0f, juce::Font::plain)));
+        routes_[tm]->setFont(juce::Font(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 12.5f, juce::Font::bold)));
         routes_[tm]->setColour(juce::Label::textColourId, colours::print);
         routes_[tm]->setJustificationType(juce::Justification::topLeft);
         addAndMakeVisible(l.get());
@@ -306,7 +307,7 @@ FxArpView::FxArpView(plugin::KestrelProcessor& p, TouchFn t) : View(p, std::move
     auto* st = section("Step arpeggiator (steps 1-8)", c, 520);
     for (int i = 0; i < 8; ++i) {
         auto btn = std::make_unique<juce::TextButton>(juce::String(i + 1));
-        btn->setClickingTogglesState(true);
+        btn->setClickingTogglesState(true); // LED shows the step on/off state
         btn->setTooltip("Arp step " + juce::String(i + 1) + " on/off");
         stepAtt_.push_back(std::make_unique<juce::ButtonParameterAttachment>(*proc_.param(pG(GP(ArpStep1 + i))), *btn, nullptr));
         steps_.push_back(btn.get());
@@ -322,7 +323,7 @@ void FxArpView::refresh() {
     const int cur = proc_.engine().arpStep();
     const int last = int(value(pG(ArpLastStep)));
     for (int i = 0; i < 8; ++i) {
-        steps_[size_t(i)]->setColour(juce::TextButton::buttonColourId, i == cur ? colours::lcdText.darker(0.3f) : colours::knobCap);
+        steps_[size_t(i)]->setColour(juce::TextButton::buttonColourId, i == cur ? colours::knobCap.brighter(0.6f) : colours::knobCap);
         steps_[size_t(i)]->setAlpha(i < last ? 1.0f : 0.35f);
     }
 }
@@ -332,6 +333,7 @@ void BandMeter::paint(juce::Graphics& g) {
     auto r = getLocalBounds().toFloat();
     g.setColour(colours::lcdBg);
     g.fillRoundedRectangle(r, 4.0f);
+    draw::inset(g, r, 4.0f, 1.2f);
     const float bw = (r.getWidth() - 16.0f) / 16.0f;
     for (int b = 0; b < 16; ++b) {
         const float e = proc_.engine().vocoderBand(b);
@@ -376,6 +378,8 @@ VocoderView::VocoderView(plugin::KestrelProcessor& p, TouchFn t) : View(p, std::
     auto hb = std::make_unique<juce::TextButton>("FORMANT HOLD");
     hold_ = hb.get();
     hold_->setClickingTogglesState(false);
+    hold_->getProperties().set("led", true);
+    hold_->getProperties().set("ledColour", int(colours::vocoder.getARGB()));
     hold_->onClick = [this] {
         auto* prm = proc_.param(pG(VocEfSense));
         const float cur = value(pG(VocEfSense));
@@ -418,7 +422,7 @@ void VocoderView::refresh() {
 GlobalView::GlobalView(plugin::KestrelProcessor& p, TouchFn t) : View(p, std::move(t)) {
     const auto c = colours::accent;
     auto* gl = section("Global", c, 420);
-    knob(*gl, pG(MasterTune), c, "Master Tune");
+    knob(*gl, pG(MasterTune), c, "A4 Tune");
     knob(*gl, pG(MasterTranspose), c, "Transpose");
     knob(*gl, pG(VelocityCurve), c, "Vel Curve");
     choice(*gl, pG(Clock), "Clock", 80);

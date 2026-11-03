@@ -6,6 +6,14 @@
 
 file(GLOB KESTREL_PRESET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/presets/*.kvp")
 juce_add_binary_data(KestrelPresets SOURCES ${KESTREL_PRESET_FILES} ${CMAKE_SOURCE_DIR}/presets/bank-order.txt)
+# UI typefaces (SIL Open Font License 1.1, licence texts in resources/fonts)
+juce_add_binary_data(KestrelFonts HEADER_NAME KestrelFontData.h NAMESPACE KestrelFontData SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/BigShoulders-Bold.ttf
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/BigShoulders-Regular.ttf
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/WorkSans-Regular.ttf
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/WorkSans-Bold.ttf
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/Tektur-Medium.ttf
+    ${CMAKE_CURRENT_SOURCE_DIR}/resources/fonts/Silkscreen-Regular.ttf)
 
 set(KESTREL_PLUGIN_SOURCES
     src/PluginProcessor.cpp
@@ -46,6 +54,7 @@ function(kestrel_add_plugin target productName pluginCode isSynth formats catego
         PRIVATE
             kestrel_engine
             KestrelPresets
+            KestrelFonts
             juce::juce_audio_utils
             juce::juce_audio_processors
             juce::juce_gui_extra
@@ -75,5 +84,5 @@ target_sources(KestrelSnapshot PRIVATE tools/Snapshot.cpp ${KESTREL_PLUGIN_SOURC
 target_include_directories(KestrelSnapshot PRIVATE src)
 target_compile_definitions(KestrelSnapshot PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JucePlugin_Name="Kestrel VA"
     KESTREL_IS_FX_VARIANT=0 JUCE_STANDALONE_APPLICATION=1)
-target_link_libraries(KestrelSnapshot PRIVATE kestrel_engine KestrelPresets juce::juce_audio_utils juce::juce_audio_processors
+target_link_libraries(KestrelSnapshot PRIVATE kestrel_engine KestrelPresets KestrelFonts juce::juce_audio_utils juce::juce_audio_processors
     juce::juce_gui_extra PUBLIC juce::juce_recommended_config_flags)

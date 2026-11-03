@@ -1,6 +1,7 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include <juce_audio_utils/juce_audio_utils.h>
 
 #include <array>
 #include <memory>
@@ -37,6 +38,7 @@ private:
     int lastTouched_ = -1;
     juce::uint32 lastTouchTime_ = 0;
     juce::TooltipWindow tooltip_ { this, 600 };
+    juce::MidiKeyboardComponent keyboard_;
 };
 
 class KestrelEditor final : public juce::AudioProcessorEditor, private juce::Timer {
