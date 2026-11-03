@@ -80,16 +80,19 @@ void Timbre::advanceReference(const float* pv, int n, double bpm) noexcept {
     }
 }
 
-void Timbre::noteOn(const VoiceContext& ctx, int note, int velocity) noexcept {
+void Timbre::resetTimbreSyncLfos(const float* pv) noexcept {
+    for (int i = 0; i < 2; ++i) {
+        const TP ks = i == 0 ? Lfo1KeySync : Lfo2KeySync;
+        if (int(pv[tb_ + ks]) == 1) ref_[i].resetPhase();
+    }
+}
+
+void Timbre::noteOn(const VoiceContext& ctx, int note, int velocity, bool arpNote) noexcept {
     if (count_ <= 0 || note < 0 || note > 127) return;
     const float* pv = ctx.pv1;
-    // KEY SYNC = Timbre: reset the reference at the first note-on from "no keys" [DOC p.29]
-    if (heldKeys_ == 0) {
-        for (int i = 0; i < 2; ++i) {
-            const TP ks = i == 0 ? Lfo1KeySync : Lfo2KeySync;
-            if (int(pv[tb_ + ks]) == 1) ref_[i].resetPhase();
-        }
-    }
+    // KEY SYNC = Timbre: reset the reference at the first note-on from "no keys" [DOC p.29].
+    // Arpeggiated notes are automatic and do not count ([DOC p.53] Sync Control).
+    if (heldKeys_ == 0 && !arpNote) resetTimbreSyncLfos(pv);
     if (!keyDown_[size_t(note)]) {
         keyDown_[size_t(note)] = true;
         ++heldKeys_;

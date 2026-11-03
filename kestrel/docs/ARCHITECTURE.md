@@ -49,13 +49,14 @@ replaced in one place (see §11, `params/Mapping.cpp` and the module interfaces)
 
 ### 1.3 Operating modes
 
-- **Compatibility mode** (default for new instances): 4-voice limit and Layer voice split
-  [DOC], parameters quantized to hardware resolution (integers 0..127, ±63 and so on) [DOC],
-  all [EXT] features off. If measurements later show characteristic digital artefacts of the
-  hardware (aliasing patterns, bandwidth limits, quantization), they will be modelled
-  deliberately here, and only here.
-- **Extended mode** [EXT]: higher polyphony (up to 16 voices per timbre), unquantized
-  parameter values, and other clearly labelled additions.
+- **Compatibility mode** (GLOBAL "Voice Allocation", default for new instances): 4-voice
+  limit and Layer voice split [DOC]. Kestrel adds no drift, noise, saturation or other
+  "character" anywhere; if measurements later show characteristic digital artefacts of the
+  hardware (aliasing patterns, bandwidth limits, parameter quantisation/zipper), they will be
+  modelled deliberately in this mode, and only here.
+- **Extended mode** [EXT]: higher polyphony (up to 16 voices per timbre for Poly).
+- Parameters take hardware ranges in both modes; continuous parameters accept fractional
+  host-automation values (the hardware's internal resolution is unknown, §10.1).
 
 Quality settings (internal oversampling) are [HOST]. They reduce artefacts that the
 hardware is not known to have. They are not a historical-accuracy control.
@@ -156,7 +157,7 @@ effect [DOC].
 | Wave | CONTROL 1 [DOC meaning] | CONTROL 2 [DOC meaning] | Kestrel model (§4) |
 |---|---|---|---|
 | Saw | Modifies waveform; 0 = saw, 127 = saw one octave up (fig 3-1) | LFO1 depth on CTRL1 | Two half-amplitude saws with phase offset 0..180° [FIG] |
-| Square | Pulse width 50% (0) .. 0% (127, silent) (fig 3-2) | LFO1 PWM depth | PolyBLEP pulse; width linear in CTRL1 [FIG/ENG] |
+| Square | Pulse width 50% (0) .. 0% (127, silent) (fig 3-2) | LFO1 PWM depth | BLEP-corrected pulse; width linear in CTRL1 [FIG/ENG] |
 | Triangle | 0 = triangle, 127 = octave + fifth up (fig 3-3) | LFO1 depth on CTRL1 | Triangle wavefolder, gain 1..3 [FIG] |
 | Sine | Synth: cross-mod depth from OSC2 (fig 3-4). Vocoder: "modifies the waveform" | Synth: LFO1 depth on x-mod. Vocoder: LFO1 depth on CTRL1 | Phase modulation by OSC2 [ENG]; vocoder variant [ENG] |
 | Vox | Modifies waveform (fig 3-5) | LFO1 depth on CTRL1 | Original glottal-pulse-like approximation [FIG/ENG] |
@@ -355,27 +356,27 @@ summing two half-amplitude saws with a phase offset Δ:
 fundamental cancels and the result is an octave-up saw [DOC p.18]. A crossfade between
 saw(φ) and saw(2φ) would give unequal drops (1.5 : 0.5), which the figure does not show.
 CONTROL 2 adds LFO1 · depth to CTRL1 before mapping [DOC]. Each discontinuity is corrected
-with a polyBLEP residual.
+with a 4-point B-spline BLEP residual (§4.9).
 
 ### 4.2 Square / pulse [DOC p.18, FIG fig 3-2]
 Pulse width = 50 % · (1 − CTRL1/127) (linear [ENG]). 127 gives 0 % and silence [DOC]. The
 output is DC-free around the pulse mean [ENG; DC behaviour unknown]. Both edges get
-polyBLEP corrections. PWM comes from CONTROL 2 (LFO1) or a patch to OSC1 Control 1 [DOC].
+BLEP corrections. PWM comes from CONTROL 2 (LFO1) or a patch to OSC1 Control 1 [DOC].
 
 ### 4.3 Triangle — folded triangle [FIG fig 3-3]
 Figure 3-3 at 63 shows an "M" over the positive half and a "W" over the negative half, which
 is exactly a triangle folded at ±1 with gain 2. At 127 it shows three peaks and troughs per
 period (gain 3), which is the documented "octave and a fifth higher" (3rd harmonic) [DOC].
 Kestrel: `y = fold(g · tri(φ))`, g = 1 + 2·CTRL1/127 [FIG/ENG]. All fold corners are known
-analytically and receive polyBLAMP corrections.
+analytically and receive BLAMP corrections.
 
 ### 4.4 Sine — cross modulation [DOC p.19, FIG fig 3-4]
 Synth: OSC2's output, scaled by "X-mod Depth + X-mod Depth Mod" (CTRL1 + LFO1·CTRL2), is
 summed into the OSC1 sine path (fig 3-4). Kestrel implements phase modulation,
 `y = sin(2π(φ1 + k·osc2))` [ENG]. Whether the hardware uses PM, FM or through-zero FM, and
 the depth at 127, are unknown. Vocoder: "modifies the waveform" [DOC] with no further
-detail. Kestrel uses self-phase-modulation `sin(2π(φ + k·sin 2πφ))` [ENG], because OSC2
-does not exist in a vocoder program.
+detail. Kestrel uses the triangle's wavefolder on the sine (gain 1..3, BLAMP-corrected) as a
+clearly labelled placeholder [ENG], because OSC2 does not exist in a vocoder program.
 
 ### 4.5 Vox [FIG fig 3-5, ENG]
 Figure 3-5 shows a smooth unipolar pulse (0), a narrower pulse with a small undershoot (63)
@@ -417,12 +418,23 @@ OSC2: Saw, Square or Triangle at the OSC1 pitch + SEMITONE + TUNE.
 ### 4.9 Bandlimiting and oversampling [ENG/HOST]
 - Oscillators, mixer, filter, VCA and distortion run per voice at an internal rate of
   1×, 2× or 4× the host rate. The default is 2× below 88.2 kHz and 1× at or above.
-- Hard edges and sync resets get polyBLEP corrections; slope breaks (triangle fold corners,
-  sync on triangle) get polyBLAMP. Table-based waves (Vox, DWGS) use mip-mapped bandlimited
-  tables.
-- Decimation uses linear-phase FIR half-band stages designed for an integer base-rate
-  latency. The total latency is reported to the host and updated when the quality setting
-  changes.
+- Hard edges and sync resets get 4-point band-limited step corrections (BLEP from the
+  integrated cubic B-spline, closed form); slope breaks (triangle peaks and fold corners, sync
+  on triangle) get the corresponding BLAMP. All oscillator paths share the same two-sample
+  look-ahead, so OSC1, OSC2, ring and cross-mod stay sample-aligned. Table-based waves (Vox,
+  DWGS) use mip-mapped tables; the level is chosen so that harmonics can only fold above the
+  host-rate Nyquist frequency (removed by the decimator), which makes level switching inaudible.
+- Measured (tests/test_osc.cpp, 48 kHz, 2x): worst alias component of a saw re the strongest
+  partial: -103 dB at 110 Hz, -93 dB at 440 Hz, -91 dB at 880 Hz, -86 dB at 1.76 kHz,
+  -81.5 dB at 2.64 kHz; hard sync inharmonic energy -84 to -90 dB.
+- Decimation uses linear-phase FIR half-band stages (Kaiser, 101 taps at 2x; plus a 25-tap
+  pre-stage at 4x) designed for an integer base-rate latency: 25 samples at 2x, 28 at 4x,
+  0 at 1x. Passband flat to 20 kHz within 0.05 dB, images that could fold into the audio band
+  rejected by > 90 dB (tests/test_core.cpp). The latency is reported to the host and updated
+  when the quality setting changes. The external-input paths that do not pass through the
+  oscillators (vocoder modulator, DIRECT, HPF, INST, AUDIO IN THRU) are delayed by the same
+  amount so they stay aligned with the synth output; OSC1 Audio In additionally passes the
+  2x interpolator (+25 samples, not compensated).
 - These are quality measures, not historical claims. If measurements show characteristic
   aliasing or bandwidth limits in the hardware, they will be modelled explicitly in
   Compatibility mode.
@@ -437,19 +449,25 @@ no evidence of any particular analog topology, is published. Kestrel therefore m
 ladder, OTA, WDF or component-level claim**. It uses Zavalishin's topology-preserving
 transform (TPT) state-variable filter, chosen for one engineering reason: it stays stable and
 artefact-free under audio-rate cutoff modulation (EG, LFO, key tracking, patch). The filter
-sits behind a small interface (`filter/FilterModel`), so a measured model can replace it
-without touching voices or parameters.
+is a self-contained class (`filter/MultimodeFilter.h`, coefficients from `params/Mapping.cpp`),
+so a measured model can replace it without touching voices or parameters.
 
 ### 5.2 Structure [ENG]
-- **−12 dB LPF / BPF / HPF**: one TPT SVF, using its LP, BP (gain-normalised to unity at
-  the centre frequency with resonance 0) and HP outputs.
-- **−24 dB LPF**: two cascaded TPT SVF low-pass sections. With resonance 0, stage 1 has
-  Q = 0.541 and stage 2 Q = 1.307, which is a 4th-order Butterworth. RESONANCE raises the
-  stage-2 Q towards self-oscillation.
-- **Self-oscillation** ([OM] p.25 [DOC]): at the top of the RESONANCE range, the effective
-  damping reaches zero. Oscillation amplitude is bounded by an amplitude-dependent damping
-  term, a documented stability measure that keeps the loop finite and is **not** a circuit
-  model. There is no tanh() or other "analog warmth" stage.
+- **−12 dB LPF / BPF / HPF**: one TPT SVF core, using its LP, BP (× √2: unity at the centre
+  frequency with resonance 0, rising with Q) and HP outputs. Switching between these types
+  keeps the state (click-free).
+- **−24 dB LPF**: a fixed Butterworth SVF low-pass pre-stage (Q = 0.541) followed by the same
+  resonant core (Q = 1.307 at resonance 0), i.e. a 4th-order Butterworth at resonance 0.
+  RESONANCE raises the core's Q towards self-oscillation. Measured: -3.0 dB at fc and
+  24 dB/oct (LP24), 12 dB/oct (LP12/HP12), cutoff accurate to < 0.3 dB at fc for 44.1-192 kHz.
+- **Self-oscillation** ([OM] p.25 [DOC]): the damping k falls slightly below zero at the top of
+  the RESONANCE range. Only when k < 0.06 (very high Q) an amplitude-dependent extra damping
+  fades in, proportional to the state energy above amplitude 1. This bounds self-oscillation
+  (steady amplitude ~1, pitch within ~35 cents of the cutoff across 88.2-192 kHz) and the
+  resonant peak of loud inputs; below that resonance the filter is strictly linear at any level.
+  It is a documented stability measure and **not** a circuit model. A digital filter cannot
+  start from exact silence, so an inaudible (1e-4) state seed is applied at note-on. There is no
+  tanh() or other "analog warmth" stage.
 - Passband gain loss with rising resonance (common in hardware) is unknown and not
   modelled [ENG].
 
@@ -458,7 +476,9 @@ without touching voices or parameters.
   19.9 kHz, one semitone per step. Clamped below 0.45 × the internal rate.
 - Modulation sums in the pitch domain (semitones): EG1·INT, key track, velocity sense,
   patch, FC MOD. The scale factors live in Mapping.cpp and are pending measurement.
-- RESONANCE: 0..127 → damping. The curve and self-oscillation onset are [ENG].
+- RESONANCE: r = v/127, k(12 dB) = 1.414·(1−r)² − 0.03·r⁸, k(24 dB core) = 0.765·(1−r)² − 0.03·r⁸
+  (self-oscillation from about v ≈ 115) [ENG].
+- FILTER EG INT: ±63 → ±126 steps at EG = 1; key track: +48 = 1 step per semitone [DOC].
 
 ---
 
@@ -466,9 +486,18 @@ without touching voices or parameters.
 
 Documented: on/off per timbre, drive set by the mixer levels ([OM] p.27), and in the vocoder
 it acts on the carrier ([OM] p.37). The transfer curve is not documented; the figure 0-1 icon
-is only a symbol. Kestrel uses a static, odd-symmetric polynomial soft clipper with a hard
-ceiling. It runs at the oversampled rate, with fixed make-up gain, and is labelled an [ENG]
-approximation. It is not presented as a model of any circuit.
+is only a symbol. Kestrel uses a static, odd-symmetric polynomial soft clipper
+(y = 1.5x − 0.5x³, hard ceiling at |x| = 1) with a fixed pre-gain of 2, placed after the
+amp-EG VCA and before LEVEL/PAN (figure 0-1 drawing order). It runs at the oversampled rate
+with first-order antiderivative anti-aliasing (ADAA) and is labelled an [ENG] approximation.
+It is not presented as a model of any circuit.
+
+### 6.1 Gain staging and output stage [ENG]
+- Oscillators peak at ±1, MIXER and AMP LEVEL are linear gains (level/127), the summed voice
+  output is scaled by 0.25 (a single full-level saw voice peaks near -10 dBFS), and the
+  vocoder output has a fixed make-up gain. None of this is calibrated against hardware.
+- A first-order 5 Hz DC blocker sits at the final output. It stands in for the (unmeasured)
+  AC-coupled analog output and removes the DC that e.g. a hard-synced saw produces.
 
 ---
 
@@ -551,14 +580,16 @@ outermost voices equals UNISON DETUNE in cents, and voices are evenly spaced (2 
   note-on [DOC].
 - **EG RESET** applies when a sounding voice is retriggered (Mono/Unison Multi, or a Poly
   voice reused or stolen before its release ends) [DOC p.26, ENG for the Poly steal case].
-- **LFO KEY SYNC**: Off and Timbre use one LFO per timbre shared by all voices [FIG
-  10-2/10-3]; Voice uses per-voice LFOs reset at note-on [FIG 10-4]. Notes generated by the
-  arpeggiator do not count as "first note from no keys held" for Timbre sync (the hardware
-  separates arpeggiated notes via the Sync Control message, [OM] p.53) [ENG].
+- **LFO KEY SYNC**: each voice runs its own LFOs. With Off and Timbre a starting voice copies
+  the phase (and S&H sequence) of a per-timbre reference LFO, so all voices move in phase
+  [FIG 10-2/10-3]; the reference is free-running (Off) or restarted by the first note-on from
+  "no keys held" (Timbre). Voice resets the voice's own LFO at note-on [FIG 10-4]. Per-voice
+  LFOs keep LFO2 FREQ patch modulation per voice. Arpeggiated notes do not restart Timbre sync:
+  the first physically played key does ([OM] p.53 Sync Control) [DOC/ENG].
 
 ### 8.4 Extended mode [EXT]
-Up to 16 voices per timbre. The Layer split is removed (each timbre gets its own pool), and
-Unison stacks a configurable 2..8 voices per note. Off in Compatibility mode.
+Up to 16 voices per timbre for Poly; Unison uses 4 voices per timbre also in a Layer; Mono
+uses 1. Compatibility (4 voices total) is the default for new instances.
 
 ### 8.5 MIDI note handling
 - All Notes Off (CC#123) releases notes; All Sound Off (CC#120) silences immediately; Reset
@@ -594,8 +625,8 @@ repeats are not filtered [ENG; unknown].
 
 ### 9.3 EQ [DOC frequencies and gains; ENG type]
 Low and high bands with the exact 30-step frequency tables (`*T-10`, `*T-11`) and ±12 dB.
-The filter type is undocumented. Kestrel uses TPT low and high shelving filters with fixed
-slope [ENG].
+The filter type is undocumented. Kestrel uses RBJ-cookbook low and high shelving biquads
+(slope S = 1) [ENG]; gains of 0 dB bypass the EQ.
 
 ### 9.4 Arpeggiator
 - Runs on sample-accurate timing at the internal TEMPO or the host tempo and position
@@ -609,13 +640,14 @@ slope [ENG].
 
 ### 9.5 Vocoder
 - 16 analysis band-pass filters on the gated AUDIO IN 1, at grid indices 4..19 [DOC]. Each
-  filter is a 4th-order TPT band-pass (two cascaded 2nd-order sections) with Q derived from
-  the grid spacing [ENG].
+  filter is a 4th-order TPT band-pass (two cascaded 2nd-order sections, each normalised to
+  unity peak gain) with Q derived from the grid spacing (1.5..12) [ENG].
 - 16 envelope followers (rectifier plus asymmetric one-pole attack/release). E.F.SENSE maps
   to the time constants [ENG]. Hold freezes the 16 levels and stores them with the program
   [DOC].
 - 16 synthesis band-pass filters on the carrier at shifted grid positions (§3.11). RESONANCE
-  raises their Q [DOC/ENG]. FC MOD adds a continuous shift [DOC].
+  raises their Q (× 1..4) with √(Q/Q₀) level compensation [DOC/ENG]. FC MOD adds a continuous
+  shift [DOC]; its source values come from the most recently played carrier voice.
 - Per-channel LEVEL and PAN on filter pairs [DOC]. The output adds DIRECT LEVEL
   (AUDIO IN 1 dry) and HPF LEVEL (AUDIO IN 1 through a high-pass, gated to note-on when HPF
   GATE = Enable) [DOC]. The HPF cutoff is [ENG].
@@ -628,12 +660,13 @@ slope [ENG].
 
 ### 10.1 Parameters and state
 - **Stable string IDs**, hierarchical, never renamed or renumbered; new parameters are only
-  appended. Examples: `prog.mode`, `t1.voice.assign`, `t1.osc1.wave`, `t1.osc1.ctrl1`,
-  `t2.filter.cutoff`, `t1.patch3.dest`, `voc.ch3.level`, `voc.ef.sense`, `fx.delay.time`,
-  `arp.type`, `global.mastertune`. The VST3 parameter IDs are derived from these strings.
-- Values are in hardware units (for example cutoff 0..127, EG INT −63..+63, choice
-  indices). Compatibility mode quantizes to hardware resolution. Extended mode allows
-  fractional values on continuous parameters [EXT].
+  appended (`engine/src/params/Params.h`). Examples: `prog.voiceMode`, `t1.voice.assign`,
+  `t1.osc1.wave`, `t1.osc1.ctrl1`, `t2.filter.cutoff`, `t1.patch3.dst`, `voc.ch3.level`,
+  `voc.filter.efSense`, `fx.delay.time`, `arp.type`, `global.masterTune`. The VST3 parameter
+  IDs are derived from these strings (JUCE string-hash IDs, version hint 1).
+- Values are in hardware units (for example cutoff 0..127, EG INT −63..+63, choice indices).
+  Continuous parameters accept fractional values from host automation; the hardware's internal
+  resolution and smoothing are unknown, so no quantisation is applied.
 - The state stores a format version, all parameters for both timbres, the vocoder (including
   the 16 E.F. hold levels), effects and arpeggiator (including the step mask), imported DWGS
   user slots, and global settings except AUDIO IN THRU.
@@ -645,11 +678,12 @@ slope [ENG].
 - **Sample-accurate MIDI**: blocks are split at event timestamps. Arpeggiator events are
   generated at exact sample offsets.
 - **Smoothing**: continuous host and automation parameters (cutoff, resonance, levels, pan,
-  intensities) ramp over 5-20 ms. Discrete parameters switch at the event sample. Internal
+  intensities) ramp linearly over 10 ms, interpolated per sample inside 32-sample render chunks. Discrete parameters switch at the event sample. Internal
   modulation (EG, LFO, patch, velocity) is never smoothed.
 - **Numerics**: FTZ/DAZ enabled for the block, filter and delay states flushed, and voice
-  states checked for non-finite values (a voice found non-finite is reset and muted). Output
-  samples are checked for finiteness. Feedback paths (delay, flanger, phaser, filter
+  states checked for non-finite values. If an output sample is ever non-finite, that chunk is
+  muted and every voice, effect, vocoder and decimator state is reset (counted by
+  `Engine::nonFiniteEvents()`; zero in all fuzz tests). Feedback paths (delay, flanger, phaser, filter
   self-oscillation) are bounded.
 - Supported rates 44.1-192 kHz and any host buffer size, including variable sizes. All
   coefficients are derived from the actual rate.
@@ -657,10 +691,13 @@ slope [ENG].
   quality setting changes.
 
 ### 10.3 MIDI
-Note on/off, pitch bend, CC#01 (mod wheel), CC#64 [HOST], CC#120/121/123-127 [DOC]. An
-optional receive map of the hardware's default panel CC assignments ([OM] p.56, for example
-CC#74 cutoff, CC#71 resonance, CC#73/75/70/72 amp EG) [DOC] can be enabled; host automation
-is the primary control path. The hardware's NRPN and SysEx program dumps are out of scope.
+Note on/off, pitch bend, CC#01 (mod wheel), CC#64 [HOST], CC#120/121/123-127 [DOC]. The
+hardware's default panel CC map ([OM] p.56 with the p.57 value tables, synth and vocoder
+assignments, CC#95 TIMBRE SELECT) and its NRPNs (arpeggiator on/range/latch/type/gate, patch
+sources/destinations, FC MOD source, vocoder band levels/pans) are received
+(`params/HardwareCc.cpp`, GLOBAL "Receive Panel CCs", default on). Received changes are
+applied sample-accurately and pushed back to the host parameters through a lock-free queue so
+automation lanes follow. SysEx program dumps are out of scope.
 
 ### 10.4 Audio input
 - **Kestrel VA** (VST3 instrument and standalone) has one optional stereo input bus,
@@ -725,22 +762,22 @@ is the primary control path. The hardware's NRPN and SysEx program dumps are out
 | Path | Contents |
 |---|---|
 | `kestrel/engine/` | Pure C++20, no JUCE dependency, unit-testable. |
-| `engine/core/` | math helpers, parameter smoothing, oversampling (FIR half-bands), denormal guards, PRNG |
-| `engine/osc/` | polyBLEP/BLAMP primitives, OSC1 wave models, OSC2, noise, wavetable/mip-map + DWGS/Vox banks and import conversion |
-| `engine/filter/` | `FilterModel` interface, TPT SVF, 24 dB cascade, noise LPF |
-| `engine/env/` | ADSR with reset semantics |
-| `engine/lfo/` | LFO waves, key sync modes, tempo sync |
-| `engine/mod/` | virtual patch matrix, source/destination enums |
-| `engine/voice/` | voice (osc → mixer → filter → amp → dist), allocator |
-| `engine/timbre/` | timbre: voice mode, trigger rules, portamento, unison |
-| `engine/fx/` | mod FX, delay, EQ |
-| `engine/vocoder/` | filter grid, analysis/synthesis banks, followers, gate, HPF path |
-| `engine/arp/` | arpeggiator and clock |
-| `engine/params/` | `ParamTable` (single source of truth: IDs, ranges, defaults, tags); `Mapping.cpp` (every hardware-value → physical-unit curve, each tagged with its evidence level so it can be replaced after measurement) |
-| `engine/Engine.{h,cpp}` | top level: program, timbres, routing, block processing |
-| `kestrel/plugin/` | JUCE `AudioProcessor`, editor, preset I/O, parameter bridge |
-| `kestrel/tools/` | offline render and analysis CLI |
-| `kestrel/tests/` | ctest suites |
+| `engine/src/core/` | math helpers, linear smoother, FFT, oversampling (FIR half-bands), denormal guards, PRNG, sine LUT |
+| `engine/src/osc/` | 4-point BLEP/BLAMP corrector, OSC1 wave models, OSC2 (sync), wavetable/mip-map + DWGS/Vox banks and import conversion |
+| `engine/src/filter/` | TPT SVF (with near-self-oscillation limiter), `MultimodeFilter` (24 dB cascade, 12 dB LP/BP/HP) |
+| `engine/src/env/` | ADSR with reset semantics |
+| `engine/src/lfo/` | LFO waves, phase reset, tempo rate |
+| `engine/src/voice/` | voice: osc → mixer → filter → VCA → dist → pan, per-sample modulation and the 4 virtual patches |
+| `engine/src/timbre/` | timbre: Poly/Mono/Unison assignment, trigger rules, EG reset, sustain, LFO key-sync reference |
+| `engine/src/fx/` | MOD FX, delay, EQ |
+| `engine/src/vocoder/` | filter grid, analysis/synthesis banks, followers, hold, gate, HPF path |
+| `engine/src/arp/` | arpeggiator and clock |
+| `engine/src/params/` | `Params.h` (single source of truth: IDs, ranges, defaults, tags); `Mapping.cpp` (every hardware-value → physical-unit curve, each tagged with its evidence level so it can be replaced after measurement); `HardwareCc.cpp` (p.56 CC map / NRPN reception) |
+| `engine/src/io/` | program text format (presets, tools) |
+| `engine/src/Engine.{h,cpp}` | top level: allocation, MIDI, arpeggiator, oversampling, vocoder, effects, block processing |
+| `kestrel/plugin/` | JUCE `AudioProcessor` (VST3 instrument, Standalone, VST3 FX variant), editor and UI, factory bank, host-side check and snapshot tools |
+| `kestrel/tools/` | `kestrel_render` (offline renderer), `kestrel_capture` (reference test set), `kestrel_compare` (reference vs. Kestrel analysis) |
+| `kestrel/tests/` | ctest suites (65 tests) |
 | `kestrel/presets/` | original preset bank |
 
 ---

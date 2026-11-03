@@ -207,7 +207,8 @@ extern const char* const kQuality[4];
     X(VoiceLimit,    "global.voiceLimit",  "Voice Allocation","GLOBAL", 0, 1, 0,   Choice, choices::kVoiceLimit, 2, Ext, false) \
     X(Quality,       "global.quality",     "Oversampling",   "GLOBAL",  0, 3, 0,   Choice, choices::kQuality, 4, Ext, false) \
     X(Damper,        "global.damper",      "Sustain Pedal (CC64)", "GLOBAL", 0, 1, 1, Bool, choices::kOffOn, 2,   Ext, false) \
-    X(MasterVolume,  "global.volume",      "Master Volume dB","GLOBAL", -60, 6, 0, Float, nullptr, 0,            Ext, true)
+    X(MasterVolume,  "global.volume",      "Master Volume dB","GLOBAL", -60, 6, 0, Float, nullptr, 0,            Ext, true) \
+    X(CcMap,         "global.ccMap",       "Receive Panel CCs (p.56 map)", "GLOBAL", 0, 1, 1, Bool, choices::kOffOn, 2, Doc, false)
 
 enum TP : int {
 #define KX(e, ...) e,

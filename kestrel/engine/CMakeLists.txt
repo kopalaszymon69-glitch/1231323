@@ -8,6 +8,7 @@ add_library(kestrel_engine STATIC
     src/io/ProgramIO.cpp
     src/osc/Oscillators.cpp
     src/osc/Wavetable.cpp
+    src/params/HardwareCc.cpp
     src/params/Mapping.cpp
     src/params/Params.cpp
     src/timbre/Timbre.cpp

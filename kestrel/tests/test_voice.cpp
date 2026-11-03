@@ -280,3 +280,41 @@ TEST(velocity_patch_to_amp) {
     const auto hard = renderNote(p, 60, 0.3, 48000.0, 0.0, 1e9, 127);
     CHECK(ka::peakAbs(hard.l) > 4.0f * ka::peakAbs(soft.l));
 }
+
+TEST(hardware_cc_map_and_nrpn) {
+    Program p = basicProgram();
+    Rig r(p);
+    // CC#74 cutoff, CC#71 resonance, CC#19 OSC2 tune (bipolar), CC#18 semitone (p.57 table), CC#83 filter type
+    r.run({ cc(0.0, 74, 33), cc(0.0, 71, 90), cc(0.0, 19, 1), cc(0.0, 18, 126), cc(0.0, 83, 70), cc(0.0, 77, 80) }, 0.01);
+    CHECK_NEAR(r.e->param(pT(0, Cutoff)), 33, 1e-6);
+    CHECK_NEAR(r.e->param(pT(0, Resonance)), 90, 1e-6);
+    CHECK_NEAR(r.e->param(pT(0, Osc2Tune)), -63, 1e-6);
+    CHECK_NEAR(r.e->param(pT(0, Osc2Semitone)), 24, 1e-6);
+    CHECK_NEAR(r.e->param(pT(0, FilterType)), 2, 1e-6); // 64..95 = -12dB BPF
+    CHECK_NEAR(r.e->param(pT(0, Osc1Wave)), 5, 1e-6);   // 80..95 = DWGS
+    // CC#15 with OSC1 = DWGS selects the wave (p.57: 0,1 -> 1 ... 126,127 -> 64)
+    r.run({ cc(0.0, 15, 71) }, 0.01);
+    CHECK_NEAR(r.e->param(pT(0, Osc1Dwgs)), 36, 1e-6);
+    // NRPN: patch 2 source = LFO2 (0x30..0x3F), destination = PAN (0x60..0x6F); arp type Alt2
+    r.run({ cc(0.0, 99, 4), cc(0.0, 98, 1), cc(0.0, 6, 0x35), cc(0.0, 98, 9), cc(0.0, 6, 0x62), cc(0.0, 99, 0), cc(0.0, 98, 7), cc(0.0, 6, 0x45) }, 0.01);
+    CHECK_NEAR(r.e->param(pT(0, P2Src)), 3, 1e-6);
+    CHECK_NEAR(r.e->param(pT(0, P2Dst)), 6, 1e-6);
+    CHECK_NEAR(r.e->param(pG(ArpType)), 3, 1e-6);
+    // the changes are queued for the host-parameter sync
+    int idx; float v; int count = 0;
+    while (r.e->popControllerChange(idx, v)) ++count;
+    CHECK(count == 10);
+    // timbre select (CC#95 = 127 -> timbre 2) in Layer
+    Program l = basicProgram();
+    setChoice(l, "prog.voiceMode", "Layer");
+    Rig rl(l);
+    rl.run({ cc(0.0, 95, 127), cc(0.0, 74, 10) }, 0.01);
+    CHECK_NEAR(rl.e->param(pT(1, Cutoff)), 10, 1e-6);
+    CHECK_NEAR(rl.e->param(pT(0, Cutoff)), 127, 1e-6);
+    // disabled map: ignored
+    Program o = basicProgram();
+    setChoice(o, "global.ccMap", "Off");
+    Rig ro(o);
+    ro.run({ cc(0.0, 74, 10) }, 0.01);
+    CHECK_NEAR(ro.e->param(pT(0, Cutoff)), 127, 1e-6);
+}

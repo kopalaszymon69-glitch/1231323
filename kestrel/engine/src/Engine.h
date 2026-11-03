@@ -79,6 +79,18 @@ public:
 
     void moveToTail(const Voice& v) noexcept override;
 
+    // Parameter changes caused by received MIDI CC/NRPN (hardware map). Single producer
+    // (audio thread) / single consumer (e.g. the plug-in's message thread, to update host
+    // parameters). Returns false when empty.
+    bool popControllerChange(int& paramIndex, float& value) noexcept {
+        const uint32_t r = ccRead_.load(std::memory_order_relaxed);
+        if (r == ccWrite_.load(std::memory_order_acquire)) return false;
+        paramIndex = ccQueue_[r & (kCcQueue - 1)].first;
+        value = ccQueue_[r & (kCcQueue - 1)].second;
+        ccRead_.store(r + 1, std::memory_order_release);
+        return true;
+    }
+
     // Read-only introspection for tests / tools (not used by the plug-in).
     const Voice& debugVoice(int i) const noexcept { return voices_[size_t(i)]; }
     int debugActiveTails() const noexcept {
@@ -131,6 +143,8 @@ private:
     // arpeggiator
     Arpeggiator arp_;
     bool arpWasOn_ = false;
+    int physicalKeys_ = 0;              // keys held on the input (before the arpeggiator)
+    std::array<bool, 128> physicalDown_ {};
     TransportInfo transport_;
     int blockOffset_ = 0;
     bool wasPlaying_ = false;
@@ -167,6 +181,14 @@ private:
     std::array<std::atomic<float>, Vocoder::kBands> uiVocEnv_ {};
     std::atomic<double> uiTempo_ { 120.0 };
     std::atomic<uint64_t> nanEvents_ { 0 };
+
+    // hardware CC / NRPN reception
+    void applyControllerTarget(int param, float value) noexcept;
+    int timbreSelect_ = 0;
+    int nrpnMsb_ = -1, nrpnLsb_ = -1;
+    static constexpr uint32_t kCcQueue = 512;
+    std::array<std::pair<int, float>, kCcQueue> ccQueue_ {};
+    std::atomic<uint32_t> ccWrite_ { 0 }, ccRead_ { 0 };
 };
 
 } // namespace kestrel

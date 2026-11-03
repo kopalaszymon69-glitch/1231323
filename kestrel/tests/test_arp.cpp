@@ -170,3 +170,25 @@ TEST(arp_drives_engine_and_stops_on_release) {
     CHECK(ka::peakAbs(out.l, size_t(0.08 * 48000), size_t(0.12 * 48000)) < 1e-3f); // gate 50 % gap
     CHECK(ka::peakAbs(out.l, size_t(0.7 * 48000)) < 1e-3f);
 }
+
+TEST(arp_notes_do_not_retrigger_timbre_lfo_sync) {
+    // LFO1 (KEY SYNC = Timbre, slow saw) -> Pitch. With the arpeggiator running, the LFO keeps
+    // its phase across arpeggiated notes; only the first played key resets it [DOC p.29, p.53].
+    Program p = basicProgram();
+    setChoice(p, "t1.osc1.wave", "Sine");
+    setChoice(p, "t1.lfo1.wave", "Saw");
+    setChoice(p, "t1.lfo1.keySync", "Timbre");
+    set(p, "t1.lfo1.freq", 30);
+    setChoice(p, "t1.patch1.src", "LFO1");
+    setChoice(p, "t1.patch1.dst", "Pitch");
+    set(p, "t1.patch1.int", 30);
+    setChoice(p, "arp.on", "On");
+    set(p, "arp.gate", 50);
+    setChoice(p, "arp.keySync", "On");
+    Rig r(p);
+    const auto out = r.run({ noteOn(0.0, 69, 100) }, 1.2);
+    // pitch at the start of note 1 and note 5 must differ (the saw LFO moved on)
+    auto f = [&](double t) { return ka::zeroCrossingFreq(out.l.data() + size_t(t * 48000) + 240, 2400, 48000.0); };
+    const double a = f(0.0), b = f(0.5);
+    CHECK_MSG(std::fabs(1200.0 * std::log2(b / a)) > 20.0, kt::fmt("note1 %g Hz, note5 %g Hz", a, b));
+}

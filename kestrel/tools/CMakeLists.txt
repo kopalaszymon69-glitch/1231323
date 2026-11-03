@@ -4,3 +4,9 @@ target_link_libraries(kestrel_tools_common INTERFACE kestrel_engine)
 
 add_executable(kestrel_render kestrel_render.cpp)
 target_link_libraries(kestrel_render PRIVATE kestrel_tools_common)
+
+add_executable(kestrel_capture kestrel_capture.cpp)
+target_link_libraries(kestrel_capture PRIVATE kestrel_tools_common)
+
+add_executable(kestrel_compare kestrel_compare.cpp)
+target_link_libraries(kestrel_compare PRIVATE kestrel_tools_common)

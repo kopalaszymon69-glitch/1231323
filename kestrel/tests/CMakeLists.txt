@@ -15,6 +15,6 @@ target_compile_definitions(kestrel_tests PRIVATE KESTREL_PRESET_DIR="${CMAKE_SOU
 # One ctest entry per area (the executable filters tests by name substring).
 foreach(area params program mapping oversampler midi output compat extended unison mono sustain stolen
              envelope pitch portamento mod_wheel velocity saw pulse triangle sine osc2 noise dwgs vox audio_in
-             filter arp delay eq modfx vocoder latency fuzz extreme silence mode_switch presets)
+             filter arp delay eq modfx vocoder latency fuzz extreme silence mode_switch presets hardware_cc)
     add_test(NAME ${area} COMMAND kestrel_tests ${area})
 endforeach()

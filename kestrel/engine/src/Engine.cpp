@@ -4,6 +4,7 @@
 #include <cstring>
 
 #include "core/Denormals.h"
+#include "params/HardwareCc.h"
 #include "params/Mapping.h"
 
 namespace kestrel {
@@ -122,6 +123,8 @@ void Engine::reset() noexcept {
     eq_.reset();
     vocoder_.reset();
     arp_.reset();
+    physicalDown_.fill(false);
+    physicalKeys_ = 0;
     bendTarget_ = bendCur_ = 0.0f;
     modTarget_ = modCur_ = 0.0f;
     sustain_ = false;
@@ -240,7 +243,7 @@ void Engine::dispatchToTimbres(bool on, int note, int vel, bool arpNote) noexcep
             continue;
         }
         VoiceContext ctx = makeContext(t, 1);
-        if (on) timbres_[size_t(t)].noteOn(ctx, note, vel);
+        if (on) timbres_[size_t(t)].noteOn(ctx, note, vel, arpNote);
         else timbres_[size_t(t)].noteOff(ctx, note);
     }
 }
@@ -248,11 +251,23 @@ void Engine::dispatchToTimbres(bool on, int note, int vel, bool arpNote) noexcep
 void Engine::noteOnInternal(int note, int vel) noexcept {
     const int fixedVel = int(target_[size_t(pG(VelocityCurve))]);
     if (fixedVel > 0) vel = fixedVel; // [DOC p.47] fixed velocity 1..127; "Curve" passes incoming MIDI velocity
+    if (target_[size_t(pG(ArpOn))] >= 0.5f && physicalKeys_ == 0) {
+        // first played key while the arpeggiator runs: KEY SYNC = Timbre restarts here
+        const ProgMode mode = ProgMode(int(target_[size_t(pG(VoiceMode))]));
+        const int arpTarget = int(target_[size_t(pG(ArpTarget))]);
+        for (int t = 0; t < kNumTimbres; ++t) {
+            if (t == 1 && mode != ProgMode::Layer) continue;
+            if (mode == ProgMode::Layer && !(arpTarget == 0 || arpTarget == t + 1)) continue;
+            timbres_[size_t(t)].resetTimbreSyncLfos(pv1_.data());
+        }
+    }
+    if (note >= 0 && note < 128 && !physicalDown_[size_t(note)]) { physicalDown_[size_t(note)] = true; ++physicalKeys_; }
     arp_.keyOn(note, vel);
     dispatchToTimbres(true, note, vel, false);
 }
 
 void Engine::noteOffInternal(int note) noexcept {
+    if (note >= 0 && note < 128 && physicalDown_[size_t(note)]) { physicalDown_[size_t(note)] = false; --physicalKeys_; }
     arp_.keyOff(note);
     dispatchToTimbres(false, note, 0, false);
 }
@@ -290,6 +305,8 @@ void Engine::handleMidi(const MidiEvent& e) noexcept {
                 case 120: // All Sound Off
                     for (auto& t : timbres_) t.allSoundOff();
                     arp_.allKeysOff();
+                    physicalDown_.fill(false);
+                    physicalKeys_ = 0;
                     break;
                 case 121: // Reset All Controllers
                     bendTarget_ = 0.0f;
@@ -306,11 +323,38 @@ void Engine::handleMidi(const MidiEvent& e) noexcept {
                     for (auto& t : timbres_) t.allNotesOff();
                     arp_.allKeysOff();
                     sustain_ = false;
+                    physicalDown_.fill(false);
+                    physicalKeys_ = 0;
                     break;
-                default: break;
+                default: {
+                    if (target_[size_t(pG(CcMap))] < 0.5f) break;
+                    const ProgMode mode = ProgMode(int(target_[size_t(pG(VoiceMode))]));
+                    CcTarget out[2];
+                    int nt = 0;
+                    if (d1 == 99) { nrpnMsb_ = d2; break; }
+                    if (d1 == 98) { nrpnLsb_ = d2; break; }
+                    if (d1 == 95) { timbreSelect_ = d2 == 0 ? 0 : (d2 == 1 ? 1 : 2); break; } // TIMBRE SELECT [DOC p.53]
+                    if (d1 == 6) {
+                        if (nrpnMsb_ >= 0 && nrpnLsb_ >= 0)
+                            nt = HardwareCcMap::nrpn(nrpnMsb_, nrpnLsb_, d2, mode, timbreSelect_, target_.data(), out);
+                    } else {
+                        nt = HardwareCcMap::controlChange(d1, d2, mode, timbreSelect_, target_.data(), out);
+                    }
+                    for (int k = 0; k < nt; ++k) applyControllerTarget(out[k].param, out[k].value);
+                    break;
+                }
             }
             break;
         default: break;
+    }
+}
+
+void Engine::applyControllerTarget(int param, float value) noexcept {
+    setParam(param, value);
+    const uint32_t w = ccWrite_.load(std::memory_order_relaxed);
+    if (w - ccRead_.load(std::memory_order_acquire) < kCcQueue) { // drop when the consumer lags (engine already updated)
+        ccQueue_[w & (kCcQueue - 1)] = { param, target_[size_t(param)] };
+        ccWrite_.store(w + 1, std::memory_order_release);
     }
 }
 

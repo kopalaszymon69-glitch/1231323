@@ -240,6 +240,13 @@ void KestrelProcessor::timerCallback() {
     const int lat = Engine::latencyFor(sampleRate_, int(raw_[size_t(pG(Quality))]->load()));
     if (lat != getLatencySamples()) setLatencySamples(lat);
     engine_.collectGarbage();
+    // received hardware-map CC / NRPN changes -> host parameters (keeps automation lanes in sync)
+    int idx;
+    float v;
+    while (engine_.popControllerChange(idx, v)) {
+        auto* prm = params_[size_t(idx)];
+        prm->setValueNotifyingHost(prm->convertTo0to1(v));
+    }
 }
 
 juce::AudioProcessorEditor* KestrelProcessor::createEditor() { return new KestrelEditor(*this); }

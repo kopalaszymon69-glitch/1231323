@@ -431,6 +431,7 @@ GlobalView::GlobalView(plugin::KestrelProcessor& p, TouchFn t) : View(p, std::mo
     choice(*en, pG(VoiceLimit), "Voice Allocation", 170);
     choice(*en, pG(Quality), "Oversampling", 80);
     choice(*en, pG(Damper), "Sustain CC64", 70);
+    choice(*en, pG(CcMap), "Panel CC Map", 70);
     knob(*en, pG(MasterVolume), c, "Volume");
 
     // DWGS import
