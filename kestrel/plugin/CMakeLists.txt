@@ -10,7 +10,10 @@ juce_add_binary_data(KestrelPresets SOURCES ${KESTREL_PRESET_FILES} ${CMAKE_SOUR
 set(KESTREL_PLUGIN_SOURCES
     src/PluginProcessor.cpp
     src/PluginEditor.cpp
-    src/PresetBank.cpp)
+    src/PresetBank.cpp
+    src/ui/KestrelLookAndFeel.cpp
+    src/ui/Widgets.cpp
+    src/ui/Views.cpp)
 
 function(kestrel_add_plugin target productName pluginCode isSynth formats categories)
     juce_add_plugin(${target}
@@ -65,3 +68,12 @@ if(KESTREL_BUILD_PLUGIN_CHECK)
     target_link_libraries(KestrelPluginCheck PRIVATE juce::juce_audio_processors juce::juce_events
         PUBLIC juce::juce_recommended_config_flags)
 endif()
+
+# Offscreen UI snapshots (review / documentation). Not shipped.
+juce_add_console_app(KestrelSnapshot PRODUCT_NAME "kestrel_snapshot")
+target_sources(KestrelSnapshot PRIVATE tools/Snapshot.cpp ${KESTREL_PLUGIN_SOURCES})
+target_include_directories(KestrelSnapshot PRIVATE src)
+target_compile_definitions(KestrelSnapshot PRIVATE JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JucePlugin_Name="Kestrel VA"
+    KESTREL_IS_FX_VARIANT=0 JUCE_STANDALONE_APPLICATION=1)
+target_link_libraries(KestrelSnapshot PRIVATE kestrel_engine KestrelPresets juce::juce_audio_utils juce::juce_audio_processors
+    juce::juce_gui_extra PUBLIC juce::juce_recommended_config_flags)

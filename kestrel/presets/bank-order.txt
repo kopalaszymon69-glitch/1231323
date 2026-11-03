@@ -1,2 +1,27 @@
 # Factory bank order (file names in presets/). Lines starting with # are ignored.
 00-init.kvp
+# Angelcore - basses only
+10-halo-sub.kvp
+11-seraph-glide.kvp
+12-fallen-reese.kvp
+13-choir-pluck-bass.kvp
+14-nimbus-fold.kvp
+15-gate-halo.kvp
+# Witch house / darkwave
+20-crypt-choir.kvp
+21-witch-drone.kvp
+22-hex-bells.kvp
+23-grave-arp.kvp
+24-velvet-coffin.kvp
+25-black-lace-keys.kvp
+26-phantom-organ.kvp
+27-ghost-sermon.kvp
+# Deep house
+30-velvet-chord-stab.kvp
+31-late-night-ep.kvp
+32-warehouse-organ-bass.kvp
+33-dub-pluck.kvp
+34-deep-sub-pulse.kvp
+35-sunday-pad.kvp
+36-soul-vocoder.kvp
+37-garage-arp.kvp

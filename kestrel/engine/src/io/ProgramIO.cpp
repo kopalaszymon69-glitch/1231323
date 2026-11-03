@@ -110,22 +110,20 @@ bool parseProgram(const std::string& text, Program& out, std::string& error, std
             continue;
         }
         const ParamInfo& info = paramInfo(idx);
-        char* endp = nullptr;
-        const double num = std::strtod(val.c_str(), &endp);
-        float v;
-        if (endp != val.c_str() && *endp == '\0') {
-            v = float(num);
-        } else if (info.choices != nullptr) {
-            int found = -1;
-            for (int c = 0; c < info.numChoices; ++c)
-                if (lower(info.choices[c]) == lower(val)) { found = c; break; }
-            if (found < 0) {
-                if (warnings) warnings->push_back("line " + std::to_string(lineNo) + ": bad value '" + val + "' for " + key);
-                continue;
-            }
-            v = float(found);
-        } else {
-            if (warnings) warnings->push_back("line " + std::to_string(lineNo) + ": bad number '" + val + "' for " + key);
+        float v = 0.0f;
+        bool ok = false;
+        // choice parameters: names take precedence (e.g. formant shift "-1"), then indices
+        if (info.choices != nullptr) {
+            for (int c = 0; c < info.numChoices && !ok; ++c)
+                if (lower(info.choices[c]) == lower(val)) { v = float(c); ok = true; }
+        }
+        if (!ok) {
+            char* endp = nullptr;
+            const double num = std::strtod(val.c_str(), &endp);
+            if (endp != val.c_str() && *endp == '\0') { v = float(num); ok = true; }
+        }
+        if (!ok) {
+            if (warnings) warnings->push_back("line " + std::to_string(lineNo) + ": bad value '" + val + "' for " + key);
             continue;
         }
         p.values[size_t(idx)] = sanitizeParamValue(idx, v);
