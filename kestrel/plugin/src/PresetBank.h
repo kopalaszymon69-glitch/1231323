@@ -15,6 +15,7 @@ public:
     struct Entry {
         Program program;
         juce::String file;   // resource name or absolute path
+        juce::String section; // menu section ("## <name>" line in bank-order.txt; "User" for user programs)
         bool factory = true;
     };
 

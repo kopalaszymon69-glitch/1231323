@@ -1,6 +1,6 @@
 format=kestrel-program 1
 name=Requiem Layer
-category=Dark Pad
+category=Dark Strings & Choir
 author=Kestrel factory
 description=Layer: VOX choir (timbre 1, left) with a DWGS Voice2 approximation an octave down (timbre 2, right). 2+2 voices in compatibility mode.
 prog.voiceMode=Layer
@@ -43,3 +43,4 @@ fx.delay.type=Cross Delay
 fx.delay.sync=On
 fx.delay.syncNote=1/2
 fx.delay.depth=42
+fx.mod.speed=50

@@ -22,3 +22,4 @@ fx.delay.type=Cross Delay
 fx.delay.sync=On
 fx.delay.syncNote=3/8
 fx.delay.depth=46
+t1.amp.velSense=30

@@ -34,3 +34,4 @@ fx.delay.syncNote=1/8
 fx.delay.depth=34
 fx.mod.type=Flanger/Chorus
 fx.mod.depth=14
+fx.mod.speed=50

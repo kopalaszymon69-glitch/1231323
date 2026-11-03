@@ -34,6 +34,7 @@ cmake -S kestrel -B build -G "Visual Studio 17 2022" -A x64 && cmake --build bui
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | signal flow, parameter reference, modulation routing, voice allocation, evidence levels ([DOC]/[FIG]/[ENG]/[EXT]), sources, unknowns register |
 | [docs/STATUS.md](docs/STATUS.md) | implemented features, verified behaviour with measurements, limitations |
+| [docs/PRESETS.md](docs/PRESETS.md) | the 268 factory programs by section, with descriptions |
 | [docs/BUILD.md](docs/BUILD.md) | build instructions, options, CI binaries, plug-in check |
 | [docs/FL_STUDIO.md](docs/FL_STUDIO.md) | FL Studio setup and audio-input routing |
 | [docs/REFERENCE_CAPTURE.md](docs/REFERENCE_CAPTURE.md) | how to record an original unit and compare it with Kestrel |

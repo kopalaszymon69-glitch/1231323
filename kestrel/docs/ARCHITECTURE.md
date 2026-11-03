@@ -777,7 +777,7 @@ automation lanes follow. SysEx program dumps are out of scope.
 | `engine/src/Engine.{h,cpp}` | top level: allocation, MIDI, arpeggiator, oversampling, vocoder, effects, block processing |
 | `kestrel/plugin/` | JUCE `AudioProcessor` (VST3 instrument, Standalone, VST3 FX variant), editor and UI, factory bank, host-side check and snapshot tools |
 | `kestrel/tools/` | `kestrel_render` (offline renderer), `kestrel_capture` (reference test set), `kestrel_compare` (reference vs. Kestrel analysis) |
-| `kestrel/tests/` | ctest suites (65 tests) |
+| `kestrel/tests/` | ctest suites (66 tests) |
 | `kestrel/presets/` | original preset bank |
 
 ---

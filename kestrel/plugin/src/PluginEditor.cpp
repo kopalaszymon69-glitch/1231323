@@ -73,20 +73,24 @@ EditorCanvas::~EditorCanvas() = default;
 
 void EditorCanvas::rebuildProgramList() {
     program_.clear(juce::dontSendNotification);
-    // Group the menu by category (the bank is ordered by bank-order.txt, so categories are
-    // contiguous); user programs go under one heading.
+    // One submenu per bank section (sections are contiguous in the bank order); programs
+    // without a section (Init) stay at the top level. Item IDs are program index + 1.
     const auto& bank = proc_.bank();
-    juce::String lastHeading;
+    auto* root = program_.getRootMenu();
+    juce::PopupMenu sub;
+    juce::String subName;
+    auto flush = [&] {
+        if (subName.isNotEmpty() && sub.getNumItems() > 0) root->addSubMenu(subName, sub);
+        sub = juce::PopupMenu();
+    };
     for (int i = 0; i < bank.size(); ++i) {
         const auto& e = bank.entry(i);
-        juce::String heading = e.factory ? juce::String(e.program.category) : juce::String("User");
-        if (heading.isEmpty()) heading = "Other";
-        if (heading != lastHeading) {
-            program_.addSectionHeading(heading);
-            lastHeading = heading;
-        }
-        program_.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + juce::String(e.program.name), i + 1);
+        const juce::String text = juce::String(i + 1).paddedLeft('0', 3) + "  " + juce::String(e.program.name);
+        if (e.section != subName) { flush(); subName = e.section; }
+        if (subName.isEmpty()) program_.addItem(text, i + 1);
+        else sub.addItem(i + 1, text);
     }
+    flush();
     program_.setSelectedId(proc_.getCurrentProgram() + 1, juce::dontSendNotification);
 }
 

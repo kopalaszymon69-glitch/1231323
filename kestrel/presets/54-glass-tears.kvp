@@ -1,6 +1,6 @@
 format=kestrel-program 1
 name=Glass Tears
-category=Melancholic Keys
+category=Dark Bells
 author=Kestrel factory
 description=FM-like glassy bell: sine cross-modulated by OSC2 a ninth-plus-octave above; long decay, L/R echoes.
 t1.osc1.wave=Sine
@@ -22,3 +22,4 @@ fx.delay.syncNote=1/4
 fx.delay.depth=50
 fx.eq.hiFreq=9.00kHz
 fx.eq.hiGain=-2
+t1.amp.velSense=30

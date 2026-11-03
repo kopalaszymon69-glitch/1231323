@@ -23,3 +23,4 @@ fx.delay.type=L/R Delay
 fx.delay.sync=On
 fx.delay.syncNote=3/16
 fx.delay.depth=60
+t1.amp.velSense=30

@@ -25,3 +25,5 @@ fx.mod.depth=40
 fx.delay.sync=On
 fx.delay.syncNote=1/8
 fx.delay.depth=24
+t1.amp.velSense=36
+fx.mod.speed=50

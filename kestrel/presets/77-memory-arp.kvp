@@ -28,3 +28,4 @@ fx.mod.depth=40
 fx.delay.sync=On
 fx.delay.syncNote=1/4
 fx.delay.depth=34
+fx.mod.speed=50

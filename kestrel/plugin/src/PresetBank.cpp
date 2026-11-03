@@ -24,25 +24,32 @@ void PresetBank::loadFactory() {
                 return juce::String(BinaryData::namedResourceList[i]);
         return juce::String();
     };
-    juce::StringArray names;
+    // "## <name>" starts a menu section; other lines starting with '#' are comments.
+    juce::StringArray names, sections;
+    juce::String section;
     for (auto& line : order) {
+        if (line.startsWith("##")) { section = line.substring(2).trim(); continue; }
         if (line.startsWithChar('#')) continue;
         const auto r = resourceFor(line.trim());
-        if (r.isNotEmpty()) names.add(r);
+        if (r.isNotEmpty() && !names.contains(r)) { names.add(r); sections.add(section); }
     }
     // any embedded program not listed in the order file goes last
     for (int i = 0; i < BinaryData::namedResourceListSize; ++i) {
         const juce::String orig = BinaryData::getNamedResourceOriginalFilename(BinaryData::namedResourceList[i]);
-        if (orig.endsWith(".kvp") && !names.contains(BinaryData::namedResourceList[i])) names.add(BinaryData::namedResourceList[i]);
+        if (orig.endsWith(".kvp") && !names.contains(BinaryData::namedResourceList[i])) {
+            names.add(BinaryData::namedResourceList[i]);
+            sections.add("Other");
+        }
     }
-    for (auto& n : names) {
+    for (int k = 0; k < names.size(); ++k) {
         int sz = 0;
-        const char* data = BinaryData::getNamedResource(n.toRawUTF8(), sz);
+        const char* data = BinaryData::getNamedResource(names[k].toRawUTF8(), sz);
         if (data == nullptr) continue;
         Entry e;
         std::string err;
         if (!parseProgram(std::string(data, size_t(sz)), e.program, err)) continue;
-        e.file = n;
+        e.file = names[k];
+        e.section = sections[k];
         e.factory = true;
         entries_.push_back(std::move(e));
     }
@@ -70,6 +77,7 @@ void PresetBank::rescanUser() {
         std::string err;
         if (!parseProgram(f.loadFileAsString().toStdString(), e.program, err)) continue;
         e.file = f.getFullPathName();
+        e.section = "User";
         e.factory = false;
         entries_.push_back(std::move(e));
     }

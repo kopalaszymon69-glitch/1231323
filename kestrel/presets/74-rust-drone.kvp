@@ -34,3 +34,4 @@ fx.delay.time=100
 fx.delay.depth=36
 fx.mod.type=Phaser
 fx.mod.depth=34
+fx.mod.speed=30

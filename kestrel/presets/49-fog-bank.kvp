@@ -27,3 +27,4 @@ fx.delay.time=112
 fx.delay.depth=58
 fx.eq.lowFreq=120Hz
 fx.eq.lowGain=-3
+fx.mod.speed=44

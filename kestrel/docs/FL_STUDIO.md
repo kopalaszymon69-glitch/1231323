@@ -10,8 +10,9 @@
 1. Copy `Kestrel VA.vst3` to `C:\Program Files\Common Files\VST3\` and rescan plug-ins
    (*Options → Manage plugins → Find plugins*).
 2. Add **Kestrel VA** to the Channel Rack and play it from the Piano roll or a MIDI keyboard.
-3. The 66 factory programs appear in FL Studio's preset menu (VST3 program list) and in the
-   plug-in's own program selector, which groups them by category.
+3. The 268 factory programs appear in FL Studio's preset menu (VST3 program list) and in the
+   plug-in's own program selector, which groups them into section submenus (Dark Pad, Dark
+   Bass, ...). The list is in `docs/PRESETS.md`.
 4. **Latency:** at 44.1/48 kHz with Oversampling = Auto (2×), Kestrel reports 25 samples. FL
    Studio's plug-in delay compensation uses this value, and the wrapper's *Info* field shows
    it. At 88.2 kHz and above, Auto uses 1× (0 samples).

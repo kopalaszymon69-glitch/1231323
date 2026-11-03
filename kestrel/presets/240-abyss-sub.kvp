@@ -1,0 +1,17 @@
+format=kestrel-program 1
+name=Abyss Sub
+category=Dark Bass
+author=Kestrel factory
+description=Pure, clean sine sub bass: mono, short glide, instant attack and a short release. Sits under anything.
+t1.voice.assign=Mono
+t1.voice.trigger=Single
+t1.pitch.portamento=20
+t1.osc1.wave=Sine
+t1.mixer.osc1=127
+t1.filter.type=-24dB LPF
+t1.filter.cutoff=100
+t1.aeg.attack=1
+t1.aeg.decay=64
+t1.aeg.sustain=127
+t1.aeg.release=24
+t1.amp.level=127

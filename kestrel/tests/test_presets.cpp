@@ -76,3 +76,34 @@ TEST(presets_parse_and_render_sanely) {
         CHECK_MSG(rmsDb > -45.0, p.name + kt::fmt(": too quiet (%g dB RMS)", rmsDb));
     }
 }
+
+TEST(presets_bank_order_complete) {
+    // bank-order.txt lists every program file exactly once, every listed file exists,
+    // and program names are unique (the host's program list shows names only).
+    const auto files = presetFiles();
+    std::ifstream in(std::filesystem::path(KESTREL_PRESET_DIR) / "bank-order.txt");
+    CHECK(in.good());
+    std::vector<std::string> listed;
+    std::string line;
+    while (std::getline(in, line)) {
+        while (!line.empty() && (line.back() == '\r' || line.back() == ' ')) line.pop_back();
+        if (line.empty() || line[0] == '#') continue;
+        CHECK_MSG(std::find(listed.begin(), listed.end(), line) == listed.end(), "listed twice: " + line);
+        CHECK_MSG(std::filesystem::exists(std::filesystem::path(KESTREL_PRESET_DIR) / line), "missing file: " + line);
+        listed.push_back(line);
+    }
+    std::vector<std::string> names;
+    for (const auto& f : files) {
+        const std::string fn = f.filename().string();
+        CHECK_MSG(std::find(listed.begin(), listed.end(), fn) != listed.end(), "not in bank-order.txt: " + fn);
+        std::ifstream pf(f);
+        std::stringstream ss;
+        ss << pf.rdbuf();
+        Program p;
+        std::string err;
+        if (!parseProgram(ss.str(), p, err, nullptr)) continue;
+        CHECK_MSG(std::find(names.begin(), names.end(), p.name) == names.end(), "duplicate program name: " + p.name);
+        names.push_back(p.name);
+    }
+    std::printf("    %zu programs listed\n", listed.size());
+}
