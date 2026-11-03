@@ -1,6 +1,7 @@
 #pragma once
 
 // Minimal WAV reader/writer for the offline tools (32-bit float or 16/24-bit PCM read).
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>

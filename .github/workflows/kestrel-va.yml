@@ -1,0 +1,72 @@
+name: Kestrel VA build
+
+on:
+  push:
+    paths:
+      - 'kestrel/**'
+      - '.github/workflows/kestrel-va.yml'
+  pull_request:
+    paths:
+      - 'kestrel/**'
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows x64 (MSVC) — VST3 + Standalone
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure (fetches JUCE 8.0.16-security, commit-verified)
+        run: cmake -S kestrel -B build -G "Visual Studio 17 2022" -A x64
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Engine tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+      - name: Host-side VST3 check
+        shell: bash
+        run: |
+          ./build/plugin/KestrelPluginCheck_artefacts/Release/KestrelPluginCheck.exe \
+            "build/plugin/KestrelVA_artefacts/Release/VST3/Kestrel VA.vst3" \
+            "build/plugin/KestrelVAFX_artefacts/Release/VST3/Kestrel VA FX.vst3"
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p dist/VST3 dist/Standalone
+          cp -r "build/plugin/KestrelVA_artefacts/Release/VST3/Kestrel VA.vst3" dist/VST3/
+          cp -r "build/plugin/KestrelVAFX_artefacts/Release/VST3/Kestrel VA FX.vst3" dist/VST3/
+          cp "build/plugin/KestrelVA_artefacts/Release/Standalone/Kestrel VA.exe" dist/Standalone/
+          cp kestrel/docs/BUILD.md kestrel/docs/FL_STUDIO.md dist/ 2>/dev/null || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KestrelVA-windows-x64
+          path: dist
+          if-no-files-found: error
+
+  linux:
+    name: Linux x64 — tests + VST3 + Standalone
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ninja-build libasound2-dev libjack-jackd2-dev \
+            libfreetype-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxext-dev \
+            libgl1-mesa-dev libfontconfig1-dev xvfb
+      - name: Configure
+        run: cmake -S kestrel -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Build
+        run: cmake --build build --parallel
+      - name: Engine tests
+        run: ctest --test-dir build --output-on-failure
+      - name: Host-side VST3 check
+        run: |
+          xvfb-run -a ./build/plugin/KestrelPluginCheck_artefacts/Release/KestrelPluginCheck \
+            "build/plugin/KestrelVA_artefacts/Release/VST3/Kestrel VA.vst3" \
+            "build/plugin/KestrelVAFX_artefacts/Release/VST3/Kestrel VA FX.vst3"

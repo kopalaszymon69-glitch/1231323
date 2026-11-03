@@ -17,7 +17,7 @@ add_library(kestrel_engine STATIC
 target_include_directories(kestrel_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_features(kestrel_engine PUBLIC cxx_std_20)
 if(MSVC)
-    target_compile_options(kestrel_engine PRIVATE /W4 /permissive- /fp:fast-)
+    target_compile_options(kestrel_engine PRIVATE /W4 /permissive- /fp:precise)
     target_compile_definitions(kestrel_engine PUBLIC _USE_MATH_DEFINES NOMINMAX)
 else()
     target_compile_options(kestrel_engine PRIVATE -Wall -Wextra -Wno-unused-parameter)
