@@ -1,0 +1,4 @@
+format=kestrel-program 1
+name=Init Program
+category=Init
+description=Single saw, open filter (all other parameters at their defaults).

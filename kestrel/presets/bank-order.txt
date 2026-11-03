@@ -1,0 +1,2 @@
+# Factory bank order (file names in presets/). Lines starting with # are ignored.
+00-init.kvp

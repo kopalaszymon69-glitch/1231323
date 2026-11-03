@@ -1,0 +1,81 @@
+#pragma once
+
+#include <array>
+#include <cstdint>
+
+#include "lfo/Lfo.h"
+#include "params/Params.h"
+#include "voice/Voice.h"
+
+namespace kestrel {
+
+// Hands a still-audible voice over to a short fade-out ("tail") so it can be
+// re-used immediately without a click. Implemented by the engine.
+class VoiceTailSink {
+public:
+    virtual ~VoiceTailSink() = default;
+    virtual void moveToTail(const Voice& v) noexcept = 0;
+};
+
+// One timbre: voice assignment (Mono / Poly / Unison), trigger mode, EG reset,
+// last-note priority, sustain pedal, and the timbre-level LFO phase reference.
+// [DOC p.16] VOICE section; [MI] key priority = Last.
+class Timbre {
+public:
+    void prepare(int index, double fs, Voice* pool, VoiceTailSink* tails, uint64_t* ageCounter);
+    // Assigns pool voices [first, first+count). Releases everything currently playing.
+    void setVoiceRange(int first, int count) noexcept;
+    int voiceCount() const noexcept { return count_; }
+    int firstVoice() const noexcept { return first_; }
+
+    void noteOn(const VoiceContext& ctx, int note, int velocity) noexcept;
+    void noteOff(const VoiceContext& ctx, int note) noexcept;
+    void setSustain(const VoiceContext& ctx, bool down) noexcept;
+    void allNotesOff() noexcept;    // release (keeps envelopes' release stage)
+    void allSoundOff() noexcept;    // immediate (short fade)
+    void resetNoteState() noexcept; // forget held keys (used on reallocation)
+
+    // Advances the reference LFOs by n samples (call once per render chunk).
+    void advanceReference(const float* pv, int n, double bpm) noexcept;
+
+    bool anyKeyHeld() const noexcept { return heldKeys_ > 0 || (sustainDown_ && sustainedCount() > 0); }
+    // Most recently started active voice (used by the vocoder FC MOD), or nullptr.
+    const Voice* leadVoice() const noexcept;
+
+private:
+    Assign assign(const float* pv) const noexcept { return Assign(int(pv[tb_ + VoiceAssign])); }
+    bool multiTrigger(const float* pv) const noexcept { return pv[tb_ + TriggerMode] >= 0.5f; }
+    bool eg1Reset(const float* pv) const noexcept { return pv[tb_ + FegReset] >= 0.5f; }
+    bool eg2Reset(const float* pv) const noexcept { return pv[tb_ + AegReset] >= 0.5f; }
+    int sustainedCount() const noexcept;
+
+    void polyNoteOn(const VoiceContext& ctx, int note, int velocity) noexcept;
+    void monoNoteOn(const VoiceContext& ctx, int note, int velocity, bool unison) noexcept;
+    void monoNoteOff(const VoiceContext& ctx, int note, bool unison) noexcept;
+    void startMonoVoices(const VoiceContext& ctx, int note, int velocity, bool unison, bool newPhrase) noexcept;
+    int unisonVoices() const noexcept { return count_; }
+    void stackRemove(int note) noexcept;
+    void stackPush(int note) noexcept;
+
+    int index_ = 0, tb_ = 0;
+    double fs_ = 48000.0;
+    Voice* pool_ = nullptr;
+    VoiceTailSink* tails_ = nullptr;
+    uint64_t* age_ = nullptr;
+    int first_ = 0, count_ = 0;
+
+    std::array<bool, 128> keyDown_ {};
+    std::array<bool, 128> sustained_ {};
+    std::array<uint8_t, 128> keyVel_ {};
+    int heldKeys_ = 0;
+    bool sustainDown_ = false;
+    std::array<int, 128> stack_ {};
+    int stackSize_ = 0;
+    int monoNote_ = -1;          // note currently sounding in Mono/Unison
+    bool monoSounding_ = false;
+    double lastPitch_ = 60.0;    // for portamento from the previous note
+    bool havePlayed_ = false;
+    Lfo ref_[2];                 // KEY SYNC Off/Timbre phase reference
+};
+
+} // namespace kestrel

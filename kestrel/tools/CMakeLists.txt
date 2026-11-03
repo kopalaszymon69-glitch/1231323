@@ -1,0 +1,6 @@
+add_library(kestrel_tools_common INTERFACE)
+target_include_directories(kestrel_tools_common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(kestrel_tools_common INTERFACE kestrel_engine)
+
+add_executable(kestrel_render kestrel_render.cpp)
+target_link_libraries(kestrel_render PRIVATE kestrel_tools_common)
