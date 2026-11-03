@@ -18,7 +18,7 @@ awaiting measurement (`docs/REFERENCE_CAPTURE.md`).
 | Offline renderer, capture-set generator, comparison tool | `tools/` (`kestrel_render`, `kestrel_capture`, `kestrel_compare`) |
 | Tests (65, ctest) | `tests/` |
 | Host-side VST3 checker, UI snapshot tool | `plugin/tools/` |
-| Factory bank (23 programs) | `presets/` |
+| Factory bank (66 programs) | `presets/` |
 | Architecture, sources, unknowns register | `docs/ARCHITECTURE.md` |
 | Build, FL Studio, reference-capture guides | `docs/BUILD.md`, `docs/FL_STUDIO.md`, `docs/REFERENCE_CAPTURE.md` |
 | Screenshots | `docs/images/` |
@@ -89,13 +89,13 @@ Engine tests (`ctest`, 65 tests, all passing on Linux and Windows CI) measured t
 | Latency | onset shift equals the reported latency (0 / 25 / 28 samples at 1× / 2× / 4×); audio-in thru aligned |
 | Oversampler | 20 kHz passband within 0.05 dB; images that could fold into the audio band below −90 dB |
 | Stability | 6 s random-parameter fuzz with notes, CCs, bend, sustain and noise input at 44.1 and 96 kHz: always finite, peak ≤ 3.4, no non-finite events; extreme static settings bounded; exact digital silence after release |
-| State / programs | program text round-trip; all 23 factory programs parse and render (finite, no clipping, audible) |
+| State / programs | program text round-trip; all 66 factory programs parse and render (finite, no clipping, audible) |
 | CC map | documented CC/NRPN reception incl. p.57 tables, TIMBRE SELECT, switch off |
 
 The host-side check (`KestrelPluginCheck`) runs locally and in Windows/Linux CI. It loads both
 built **VST3 bundles** through a VST3 host layer, renders at three sample rates with fixed and
 variable buffer sizes, and checks automation while rendering, the reported latency (25
-samples), the program list (23) and **state recall into a fresh instance (0 mismatches)**.
+samples), the program list (66) and **state recall into a fresh instance (0 mismatches)**.
 
 CPU use (2.1 GHz Xeon, one core, 48 kHz): about 4.5 % for 4 voices with sync and effects at
 2×, 4.9 % at 4×, 13 % for 16 voices (Extended), and 4.3 % for a 4-voice vocoder program.
@@ -123,12 +123,16 @@ CPU use (2.1 GHz Xeon, one core, 48 kHz): about 4.5 % for 4 voices with sync and
 - OSC1 Audio In passes through the 2× input interpolator. That path has 25 samples more
   latency than reported (the vocoder and thru paths are aligned).
 
-## Showcase bank
+## Factory bank
 
-The bank is themed as requested: **angelcore basses only**, plus witch house / darkwave and
-deep house synths, keys, pads, plucks, arps, basses and vocoders. Each program uses a
-different part of the engine (sync, ring, cross-mod, fold, DWGS, Vox, unison, Layer, arp
-patterns, tempo-synced LFO gating, patches, all three MOD FX and delay types, vocoder).
+The first 23 programs are the showcase requested for the project: **angelcore basses only**,
+plus witch house / darkwave and deep house synths, keys, pads, plucks, arps, basses and
+vocoders. Programs 24–66 are a **dark / sad / melancholic** collection: minor-mood pads,
+worn keys, plucks, crying leads, heavy basses, drones, slow arps and dark vocoders. Every
+program uses a different part of the engine (sync, ring, cross-mod, fold, DWGS, Vox, noise,
+unison, Layer, arp patterns, tempo-synced LFO gating, patches, all three MOD FX and delay
+types, vocoder formant shift). In the plug-in's program menu the programs are grouped under
+their category.
 
 | # | Program | Category |
 |---|---|---|
@@ -136,6 +140,30 @@ patterns, tempo-synced LFO gating, patches, all three MOD FX and delay types, vo
 | 2–7 | Halo Sub, Seraph Glide, Fallen Reese, Choir Pluck Bass, Nimbus Fold, Gate Halo | Angelcore Bass |
 | 8–15 | Crypt Choir, Witch Drone, Hex Bells, Grave Arp, Velvet Coffin, Black Lace Keys, Phantom Organ, Ghost Sermon | Witch house / darkwave (pad, synth, keys, arp, lead, organ, vocoder) |
 | 16–23 | Velvet Chord Stab, Late Night EP, Warehouse Organ Bass, Dub Pluck, Deep Sub Pulse, Sunday Pad, Soul Vocoder, Garage Swing Arp | Deep house (keys, EP, bass, pluck, pad, vocoder, arp) |
+| 24–33 | Funeral Strings, Grey Morning, Ash Choir, Hollow Cathedral, Lost Signal, Winter Breath, Minor Haze, Requiem Layer, Dead Radio, Fog Bank | Dark Pad |
+| 34–39 | Broken Music Box, Rain on Rhodes, Old Piano Ghost, Cold Organ, Glass Tears, Distant Clav | Melancholic Keys |
+| 40–44 | Wilted Pluck, Shiver Pluck, Cracked Harp, Bitter Drops, Silent Koto | Sad Pluck |
+| 45–49 | Lament Lead, Ghost Whistle, Sorrow Sync, Dirge Flute, Bleeding Vox | Dark Lead |
+| 50–54 | Undertow Bass, Black Velvet Bass, Mourning Reese, Grave Dweller, Pulse of Regret | Dark Bass |
+| 55–59 | Static Elegy, Abandoned Station, Night Tide, Rust Drone, Endless Descent | Dark Drone |
+| 60–63 | Rain Arp, Memory Arp, Requiem Steps, Lullaby for None | Dark Arp |
+| 64–66 | Hollow Choir Vocoder, Cold Machine Voice, Whisper Chant | Dark Vocoder |
+
+Notes on the dark collection:
+
+- *Minor Haze* plays a minor third on every key (OSC2 +3 semitones), so single notes already
+  sound minor; play sparse voicings.
+- *Requiem Layer* is a Layer program: in Compatibility mode each timbre gets 2 voices, so
+  chords of more than two notes steal. Switch GLOBAL *Voice Allocation* to *Extended* for
+  full chords.
+- *Ghost Whistle* is a self-oscillating filter with full key tracking. It was measured in tune
+  within 1 cent from C3 to C5.
+- The arps (60–63) follow the host tempo while FL Studio plays. Hold a minor chord.
+- The vocoders (64–66) need audio on AUDIO IN 1 (`docs/FL_STUDIO.md`). The whispered
+  programs are quieter by nature (a noise carrier through narrow bands); raise the channel
+  volume if needed.
+- All levels were set with the preset audit (`tests/test_presets.cpp`): with a three-note
+  chord and bass notes, every program peaks below 0 dBFS, most between −3 and −12 dBFS.
 
 The angelcore genre research behind the bass programs is in `presets/notes/genre-research.md`.
 Its sources are sample-pack and aggregator pages, because no authoritative definition of the

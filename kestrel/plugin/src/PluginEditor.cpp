@@ -73,7 +73,20 @@ EditorCanvas::~EditorCanvas() = default;
 
 void EditorCanvas::rebuildProgramList() {
     program_.clear(juce::dontSendNotification);
-    for (int i = 0; i < proc_.getNumPrograms(); ++i) program_.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + proc_.getProgramName(i), i + 1);
+    // Group the menu by category (the bank is ordered by bank-order.txt, so categories are
+    // contiguous); user programs go under one heading.
+    const auto& bank = proc_.bank();
+    juce::String lastHeading;
+    for (int i = 0; i < bank.size(); ++i) {
+        const auto& e = bank.entry(i);
+        juce::String heading = e.factory ? juce::String(e.program.category) : juce::String("User");
+        if (heading.isEmpty()) heading = "Other";
+        if (heading != lastHeading) {
+            program_.addSectionHeading(heading);
+            lastHeading = heading;
+        }
+        program_.addItem(juce::String(i + 1).paddedLeft('0', 2) + "  " + juce::String(e.program.name), i + 1);
+    }
     program_.setSelectedId(proc_.getCurrentProgram() + 1, juce::dontSendNotification);
 }
 
